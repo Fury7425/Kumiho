@@ -9,6 +9,7 @@ permissions:
 
 jobs:
   desktop:
+    if: ${{ !contains(github.event.head_commit.message, '[android-only]') }}
     strategy:
       fail-fast: false
       matrix:
@@ -51,6 +52,15 @@ jobs:
           gradle-version: "8.14"
       - run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
       - run: gradle :app:assembleDebug
+      - name: Verify APK
+        run: |
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          TOOLS=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          ls -l app/build/outputs/apk/debug/
+          unzip -lv "$APK" | grep -E '\.so$|AndroidManifest|Archive|files$' || true
+          "$TOOLS/aapt2" dump badging "$APK" | head -12 || true
+          "$TOOLS/zipalign" -c -P 16 -v 4 "$APK" | grep -E '\.so|Verification' || true
+          "$TOOLS/apksigner" verify --verbose --print-certs "$APK"
       - uses: actions/upload-artifact@v5
         with:
           name: kumiho-android-debug
