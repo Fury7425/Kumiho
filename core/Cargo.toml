@@ -11,8 +11,15 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 uniffi = "=0.29.4" # must match the Gobley plugin in app/build.gradle.kts
 async-trait = "0.1"
+bip39 = "2"
+chacha20poly1305 = "0.10"
 futures-executor = "0.3"
 hex = "0.4"
+hkdf = "0.12"
+iroh = "1.4"
+sha2 = "0.10"
+spake2 = { version = "0.4", features = ["getrandom"] }
+tokio = { version = "1", features = ["rt", "macros", "sync", "time"] }
 libsignal-protocol = { git = "https://github.com/signalapp/libsignal", tag = "v0.106.2" }
 rand = "0.9"
 rusqlite = { version = "0.41", features = ["bundled-sqlcipher-vendored-openssl"] }

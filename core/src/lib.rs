@@ -2,6 +2,7 @@
 //! `account` holds build-order steps 1-2. The free functions below are still stubs for the app's FFI.
 
 pub mod account;
+pub mod node;
 
 uniffi::setup_scaffolding!();
 

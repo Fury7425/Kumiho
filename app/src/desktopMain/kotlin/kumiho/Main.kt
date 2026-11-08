@@ -20,12 +20,21 @@ import androidx.compose.ui.window.rememberWindowState
 import com.sun.jna.Library
 import com.sun.jna.Native
 import com.sun.jna.Pointer
+import com.sun.jna.platform.win32.Crypt32Util
 import com.sun.jna.ptr.IntByReference
 import kotlinx.coroutines.delay
 import java.awt.Dimension
-import java.time.LocalTime
+import java.io.File
+import java.security.SecureRandom
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
-actual fun clock(): String = LocalTime.now().run { "%02d:%02d".format(hour, minute) }
+actual fun formatTime(atMs: Long): String {
+    val t = Instant.ofEpochMilli(atMs).atZone(ZoneId.systemDefault())
+    return t.format(DateTimeFormatter.ofPattern(if (t.toLocalDate() == LocalDate.now()) "HH:mm" else "MMM d"))
+}
 
 actual val blurSupported: Boolean = true
 
@@ -73,19 +82,46 @@ private fun systemReducesMotion(): Boolean = runCatching {
     isWindows && user32.SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, on, 0) && on.value == 0
 }.getOrDefault(false)
 
+/** Windows seals a random secret with DPAPI. macOS and Linux need a passphrase until the keychain work lands. */
+// ponytail: DPAPI, the spec's fallback, rather than a TPM key through CNG.
+private class DesktopVault : Vault {
+    private val dir = File(System.getenv("APPDATA") ?: System.getProperty("user.home"), "Kumiho").apply { mkdirs() }
+    private val sealedFile = File(dir, "key.sealed")
+    override val dbPath = File(dir, "kumiho.db").path
+    override val hasDatabase get() = File(dbPath).exists()
+    override val seals = isWindows
+
+    override fun secret(): String {
+        if (!seals) return ""
+        val raw = if (sealedFile.exists()) {
+            Crypt32Util.cryptUnprotectData(sealedFile.readBytes())
+        } else {
+            val fresh = ByteArray(32).also { SecureRandom().nextBytes(it) }
+            sealedFile.writeBytes(Crypt32Util.cryptProtectData(fresh))
+            fresh
+        }
+        return raw.joinToString("") { "%02x".format(it) }
+    }
+
+    override fun forget() {
+        sealedFile.delete()
+    }
+}
+
 fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
-        title = "Kumiho (demo: no real encryption or network yet)",
+        title = "Kumiho (pre-alpha, not security-reviewed)",
         state = rememberWindowState(width = 1280.dp, height = 820.dp),
     ) {
         var blocked by remember { mutableStateOf(false) }
         val reduceMotion = remember { systemReducesMotion() }
+        val vault = remember { DesktopVault() }
         LaunchedEffect(Unit) {
             window.minimumSize = Dimension(360, 620)
             while (!window.isDisplayable) delay(50)
             blocked = blockCapture(window.windowHandle)
         }
-        App(captureBlocked = blocked, reduceMotion = reduceMotion)
+        App(vault, captureBlocked = blocked, reduceMotion = reduceMotion)
     }
 }

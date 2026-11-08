@@ -15,14 +15,13 @@ class CoreTest {
     }
 
     @Test
-    fun pairingCodeChecks() {
-        assertEquals(CodeCheck.Ok, checkPairingCode(DEMO_WORDS))
-        assertEquals(CodeCheck.Ok, checkPairingCode("  RIVER maple orbit tiger seven "))
-        assertEquals(CodeCheck.Ok, checkPairingCode(DEMO_DIGITS))
-        // A typo in the format must not burn the code; a well-formed wrong code must.
-        assertEquals(CodeCheck.Malformed, checkPairingCode("river-maple"))
-        assertEquals(CodeCheck.Malformed, checkPairingCode("1234"))
-        assertEquals(CodeCheck.Wrong, checkPairingCode("one-two · three-four-five"))
-        assertEquals(CodeCheck.Wrong, checkPairingCode("00000000000000000000"))
+    fun onlyBuiltModesCanBeChosen() {
+        assertEquals(listOf(PrivacyMode.Fast), PrivacyMode.entries.filter { it.available })
+    }
+
+    @Test
+    fun unknownStatusIsNotInvented() {
+        assertEquals(DeliveryStatus.Delivered, DeliveryStatus.of("delivered"))
+        assertEquals(null, DeliveryStatus.of("received"))
     }
 }

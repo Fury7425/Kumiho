@@ -4,7 +4,6 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
@@ -25,11 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.*
@@ -49,6 +44,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import uniffi.kumiho_core.CoreException
 
 @Composable
 private fun Head(title: String, compact: Boolean, backLabel: String, onBack: () -> Unit) {
@@ -68,83 +65,21 @@ private fun Head(title: String, compact: Boolean, backLabel: String, onBack: () 
 
 @Composable
 fun AddContact(s: AppState, compact: Boolean) {
-    Head(if (s.linking) "Link a device" else "Add contact", compact, "Back to chats") { s.back() }
+    Head("Add contact", compact, "Back to chats") { s.back() }
     Page {
-        Seg(listOf("Glyph", "Scan", "Code"), s.tab, { s.tab = it; s.scanning = false }, full = true)
-        when (s.tab) {
-            0 -> GlyphTab(s)
-            1 -> ScanTab(s)
-            else -> CodeTab(s)
-        }
+        Seg(listOf("Glyph", "Scan", "Code"), s.tab, { s.tab = it }, full = true)
+        if (s.tab == 2) CodeTab(s) else NotBuiltTab(s)
     }
 }
 
+/** The Glyph needs a camera decoder nobody has proven yet (build-order step 3), so the UI doesn't pretend. */
 @Composable
-private fun GlyphTab(s: AppState) {
-    val left = secondsLeft(s.glyphDeadline)
-    val expired = left <= 0
-    val alpha by animateFloatAsState(if (expired) .15f else 1f, tween(300))
+private fun NotBuiltTab(s: AppState) {
     Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), Arrangement.spacedBy(16.dp), Alignment.CenterHorizontally) {
-        Orb(
-            s.glyphSeed, 280.dp,
-            Modifier.graphicsLayer { this.alpha = alpha }.softBlur(if (expired) 2.dp else 0.dp, 300),
-            paused = expired, label = "Your one-time Glyph. Ask the other person to scan it.",
-        )
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Txt(if (expired) "Expired" else fmtSeconds(left), Ty.num, T.textStrong)
-            if (!expired) Txt("left · works once", Ty.micro, T.muted)
-        }
-        val help = when {
-            expired -> "This Glyph expired. Old screenshots of it are useless now."
-            s.linking -> "Scan this with your other phone or computer."
-            else -> "Ask them to open Kumiho and scan this. No number or address is inside."
-        }
-        Txt(help, Ty.body, T.muted, Modifier.widthIn(max = 280.dp), align = TextAlign.Center)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Btn("New Glyph", { s.freshGlyph() }, kind = if (expired) Kind.Primary else Kind.Normal, icon = IC.refresh)
-            Btn("Use a code instead", { s.tab = 2 }, kind = Kind.Ghost)
-        }
-    }
-}
-
-@Composable
-private fun ScanTab(s: AppState) {
-    val orbScale by animateFloatAsState(if (s.scanning && !LocalReduce.current) .6f else 1f, tween(600, easing = EIo))
-    val orbAlpha by animateFloatAsState(if (s.scanning) 0f else .72f, tween(500))
-    val lock by animateFloatAsState(if (s.scanning) 1f else 0f, tween(300, 300))
-    CompositionLocalProvider(LocalT provides Dark) {
-        Box(Modifier.fillMaxWidth(), Alignment.TopCenter) {
-        Box(Modifier.widthIn(max = 340.dp).fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(24.dp)).background(Color.Black), Alignment.Center) {
-            Canvas(Modifier.matchParentSize()) {
-                val inset = 20.dp.toPx()
-                val arm = 28.dp.toPx()
-                val r = CornerRadius(10.dp.toPx())
-                val c = Color(0x99E0E2E8)
-                val stroke = Stroke(2.dp.toPx())
-                // Each corner is a rounded square clipped to its quarter.
-                for ((ax, ay) in listOf(0f to 0f, 1f to 0f, 0f to 1f, 1f to 1f)) {
-                    val x = if (ax == 0f) inset else size.width - inset - arm
-                    val y = if (ay == 0f) inset else size.height - inset - arm
-                    clipRect(x, y, x + arm, y + arm) {
-                        val ox = if (ax == 0f) x else x - arm
-                        val oy = if (ay == 0f) y else y - arm
-                        drawRoundRect(c, Offset(ox, oy), Size(arm * 2, arm * 2), r, style = stroke)
-                    }
-                }
-            }
-            Orb(1730, 220.dp, Modifier.graphicsLayer { scaleX = orbScale; scaleY = orbScale; alpha = orbAlpha })
-            Box(Modifier.graphicsLayer { alpha = lock }) { CheckDisc() }
-            Txt(
-                if (s.scanning) "Glyph found · checking keys" else "Looking for a Glyph", Ty.body, Color(0xFFD5D7DD),
-                Modifier.align(Alignment.BottomCenter).padding(bottom = 20.dp), align = TextAlign.Center,
-            )
-        }
-        }
-    }
-    Help("Camera frames are decoded on this device and never uploaded.", Modifier.fillMaxWidth(), TextAlign.Center)
-    Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)) {
-        Btn("Simulate a scan", { s.simulateScan() }, kind = Kind.Primary, enabled = !s.scanning)
-        Btn("No camera? Use a code", { s.tab = 2; s.scanning = false }, kind = Kind.Ghost)
+        Orb(s.code?.digits.hashCode(), 200.dp, Modifier.graphicsLayer { alpha = .4f })
+        Txt("Glyph pairing isn't built yet", Ty.h2, T.textStrong, align = TextAlign.Center)
+        Txt("Use a code for now. Read it to them in person or on a call.", Ty.body, T.muted, Modifier.widthIn(max = 280.dp), align = TextAlign.Center)
+        Btn("Use a code", { s.tab = 2 }, kind = Kind.Primary)
     }
 }
 
@@ -153,30 +88,33 @@ private fun CodeTab(s: AppState) {
     var digits by remember { mutableStateOf(false) }
     var copied by remember { mutableStateOf(false) }
     var input by remember { mutableStateOf("") }
-    var err by remember { mutableStateOf("") }
-    val code = if (digits) DEMO_DIGITS else DEMO_WORDS
-    val left = secondsLeft(s.codeDeadline)
+    var formatErr by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
     val clipboard = LocalClipboardManager.current
-    val pairing = remember(s.glyphSeed) {
-        val r = rng(s.glyphSeed)
-        val alphabet = "abcdefghijklmnopqrstuvwxyz234567"
-        "gly1:" + CharArray(140) { alphabet[(r() * 32).toInt()] }.concatToString()
-    }
+    val pairingCode = s.code
+    val code = pairingCode?.let { if (digits) it.digits else it.words }
+    val left = secondsLeft(s.codeDeadline)
+    val failed = s.core.pairError
     LaunchedEffect(copied) { if (copied) { delay(1600); copied = false } }
     fun submit() {
-        err = when (checkPairingCode(input)) {
-            CodeCheck.Malformed -> "Codes are five words like river-maple · orbit-tiger-seven, or 20 digits."
-            CodeCheck.Wrong -> "That code didn't match, so it's burned now. Ask them for a new one."
-            CodeCheck.Ok -> { input = ""; s.goConfirm(); "" }
+        formatErr = ""
+        scope.launch {
+            try {
+                s.core.joinPairing(input)
+            } catch (e: CoreException.BadCode) {
+                formatErr = "Codes are five words like river-maple · orbit-tiger-seven, or 20 digits."
+            } catch (e: Exception) {
+                s.core.pairError = e.message ?: "Couldn't start pairing"
+            }
         }
     }
     Section("Your code") {
         Box(Modifier.fillMaxWidth().cardBg().padding(horizontal = 16.dp, vertical = 24.dp), Alignment.Center) {
-            Txt(code, Ty.name.copy(fontFamily = Ty.mono.fontFamily, fontWeight = Ty.body.fontWeight), T.textStrong, align = TextAlign.Center)
+            Txt(code ?: "Making a code…", Ty.name.copy(fontFamily = Ty.mono.fontFamily, fontWeight = Ty.body.fontWeight), T.textStrong, align = TextAlign.Center)
         }
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Row(Modifier.weight(1f), Arrangement.spacedBy(8.dp), Alignment.CenterVertically) {
-                NetDot(false)
+                NetDot(left > 0 && failed.isEmpty())
                 Txt(if (left > 0) fmtSeconds(left) else "Expired", Ty.microMed, T.textStrong, maxLines = 1)
                 Txt("single use", Ty.micro, T.muted, maxLines = 1)
             }
@@ -184,21 +122,23 @@ private fun CodeTab(s: AppState) {
             Spacer(Modifier.width(8.dp))
             Btn(
                 if (copied) "Copied" else "Copy",
-                { clipboard.setText(AnnotatedString(code)); copied = true },
+                { code?.let { clipboard.setText(AnnotatedString(it)); copied = true } },
                 small = true, icon = if (copied) IC.check else IC.copy, tint = if (copied) T.success else null,
+                enabled = code != null,
             )
         }
         Help("Read it aloud or send it another way. One wrong guess burns it, so nobody can try twice.")
+        if (failed.isNotEmpty() || left <= 0) Btn("New code", { s.newCode() }, icon = IC.refresh)
     }
     Section {
         Txt("Their code", Ty.microMed, T.muted)
-        Field(input, { input = it; err = "" }, DEMO_WORDS, label = "Their code", invalid = err.isNotEmpty(), mono = true)
-        if (err.isNotEmpty()) ErrLine(err) else Help("Five words or 20 digits. For the demo, type the code above.")
-        Btn("Pair", { submit() }, kind = Kind.Primary, enabled = input.isNotBlank())
-    }
-    Details("Pairing text for copy and paste") {
-        Txt(pairing, Ty.mono, T.muted)
-        Help("Single use, expires in 10 minutes. Only as private as where you paste it.")
+        Field(input, { input = it; formatErr = "" }, "river-maple · orbit-tiger-seven", label = "Their code", invalid = formatErr.isNotEmpty() || failed.isNotEmpty(), mono = true)
+        when {
+            formatErr.isNotEmpty() -> ErrLine(formatErr)
+            failed.isNotEmpty() -> ErrLine(failed)
+            else -> Help("Five words or 20 digits. Keep this screen open while you pair.")
+        }
+        Btn(if (s.core.pairBusy) "Connecting…" else "Pair", { submit() }, kind = Kind.Primary, enabled = input.isNotBlank() && !s.core.pairBusy)
     }
 }
 
@@ -212,17 +152,19 @@ fun ConfirmMatch(s: AppState, compact: Boolean) {
             Txt("Do both screens show these four words?", Ty.h2, T.textStrong)
             Txt("They come from the keys you just exchanged. If they match, nobody is in the middle.", Ty.body, T.muted)
         }
-        val words = listOf("amber", "orbit", "lantern", "quiet")
-        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(T.surface).border(1.dp, T.border, RoundedCornerShape(16.dp))) {
-            for (row in 0..1) {
-                if (row == 1) Box(Modifier.fillMaxWidth().height(1.dp).background(T.border))
-                Row(Modifier.height(IntrinsicSize.Min)) {
-                    for (col in 0..1) {
-                        if (col == 1) Box(Modifier.width(1.dp).fillMaxHeight().background(T.border))
-                        val i = row * 2 + col
-                        Row(Modifier.weight(1f).padding(horizontal = 20.dp, vertical = 16.dp), Arrangement.spacedBy(12.dp), Alignment.CenterVertically) {
-                            Txt("${i + 1}", Ty.micro, T.faint)
-                            Txt(words[i], Ty.h2, T.textStrong)
+        val words = s.core.pairWords.orEmpty()
+        if (words.size == 4) {
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(T.surface).border(1.dp, T.border, RoundedCornerShape(16.dp))) {
+                for (row in 0..1) {
+                    if (row == 1) Box(Modifier.fillMaxWidth().height(1.dp).background(T.border))
+                    Row(Modifier.height(IntrinsicSize.Min)) {
+                        for (col in 0..1) {
+                            if (col == 1) Box(Modifier.width(1.dp).fillMaxHeight().background(T.border))
+                            val i = row * 2 + col
+                            Row(Modifier.weight(1f).padding(horizontal = 20.dp, vertical = 16.dp), Arrangement.spacedBy(12.dp), Alignment.CenterVertically) {
+                                Txt("${i + 1}", Ty.micro, T.faint)
+                                Txt(words[i], Ty.h2, T.textStrong)
+                            }
                         }
                     }
                 }
@@ -237,7 +179,7 @@ fun ConfirmMatch(s: AppState, compact: Boolean) {
             Card { SwitchRow("We're in the same room", "Marks them Verified. Apart, compare on a voice call.", s.inPerson) { s.inPerson = it } }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Btn("They match", { s.confirmMatch() }, kind = Kind.Primary)
-                Btn("They don't match", { s.goAdd(); s.toast("Cancelled. Nothing was saved.") }, kind = Kind.Danger)
+                Btn("They don't match", { s.mismatch() }, kind = Kind.Danger)
             }
         }
     }
@@ -248,7 +190,7 @@ fun ConfirmMatch(s: AppState, compact: Boolean) {
 private class ModeCopy(val desc: String, val facts: List<Pair<Boolean, String>>)
 
 private val MODE_COPY = mapOf(
-    PrivacyMode.Fast to ModeCopy("Handed over directly, like a sealed letter.", listOf(true to "Instant", true to "Calls and big files", false to "They can see your IP")),
+    PrivacyMode.Fast to ModeCopy("Handed over directly, like a sealed letter.", listOf(true to "Instant", false to "They can see your IP")),
     PrivacyMode.Private to ModeCopy("Passed through several couriers (Tor).", listOf(true to "Hides your IP", false to "About 1 second", false to "Timing visible to strong watchers")),
     PrivacyMode.Untraceable to ModeCopy("Mixed into a sack of identical letters (Nym).", listOf(true to "Hides your IP", true to "Hides when you chat", false to "A few seconds, no calls")),
 )
@@ -263,27 +205,23 @@ fun ModePicker(s: AppState, compact: Boolean) {
             Txt("What you write is always end-to-end encrypted. This decides what else stays hidden.", Ty.body, T.muted)
         }
         Section(gap = 20.dp) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                PrivacyMode.entries.forEach { ModeCard(it, s.modePick == it) { s.modePick = it } }
-            }
-            if (editing != null && editing.theirMode > s.modePick) Callout(IC.info, "${editing.name} chose ${editing.theirMode.label}. The stricter mode always wins.")
-            Callout(IC.shield, "Never downgraded silently. If a network is down, messages wait and you decide.")
-            Btn(if (editing != null) "Save" else "Start chatting", { s.saveMode() }, kind = Kind.Primary)
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { PrivacyMode.entries.forEach { ModeCard(it) } }
+            Callout(IC.shield, "Private and Untraceable aren't built yet, so every chat uses Fast for now. Your IP is visible to this contact.")
+            Btn(if (editing != null) "Done" else "Start chatting", { s.saveMode() }, kind = Kind.Primary)
         }
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ModeCard(mode: PrivacyMode, on: Boolean, onPick: () -> Unit) {
+private fun ModeCard(mode: PrivacyMode) {
+    val on = mode.available
     val src = remember { MutableInteractionSource() }
-    val hovered by src.collectIsHoveredAsState()
-    val edge by animateColorAsState(if (on) T.brand else if (hovered) T.borderStrong else T.border, tween(150))
-    val radio by animateColorAsState(if (on) T.brand else T.borderStrong, tween(150))
+    val edge by animateColorAsState(if (on) T.brand else T.border, tween(150))
     val shape = RoundedCornerShape(16.dp)
     val copy = MODE_COPY.getValue(mode)
     Tap(
-        onPick, Modifier.fillMaxWidth().border(1.5.dp, edge, shape), shape = shape, scale = .985f, bg = T.surface, hover = T.surface,
+        {}, Modifier.fillMaxWidth().border(1.5.dp, edge, shape), enabled = false, disabledAlpha = if (on) 1f else .6f, shape = shape, bg = T.surface,
         role = Role.RadioButton, src = src, padding = PaddingValues(16.dp), arrangement = Arrangement.spacedBy(12.dp), align = Alignment.Top,
     ) {
         Box(Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(T.raised), Alignment.Center) { Mark(mode, size = 20.dp, tint = T.textStrong) }
@@ -291,7 +229,7 @@ private fun ModeCard(mode: PrivacyMode, on: Boolean, onPick: () -> Unit) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.Center) {
                 Txt(mode.label, Ty.name, T.textStrong)
                 Txt(mode.kr, Ty.kr.copy(fontSize = 13.sp, lineHeight = 24.sp), T.faint)
-                if (mode == PrivacyMode.Untraceable) Txt("Recommended", Ty.microMed.copy(lineHeight = 24.sp), T.muted)
+                if (!on) Txt("Not built yet", Ty.microMed.copy(lineHeight = 24.sp), T.muted)
             }
             Txt(copy.desc, Ty.body, T.muted)
             FlowRow(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -304,7 +242,7 @@ private fun ModeCard(mode: PrivacyMode, on: Boolean, onPick: () -> Unit) {
                 }
             }
         }
-        Box(Modifier.padding(top = 2.dp).size(20.dp).clip(CircleShape).border(1.5.dp, radio, CircleShape).background(if (on) T.brand else Color.Transparent), Alignment.Center) {
+        Box(Modifier.padding(top = 2.dp).size(20.dp).clip(CircleShape).border(1.5.dp, if (on) T.brand else T.borderStrong, CircleShape).background(if (on) T.brand else Color.Transparent), Alignment.Center) {
             if (on) Box(Modifier.size(8.dp).clip(CircleShape).background(T.onBrand))
         }
     }
@@ -315,19 +253,21 @@ private fun ModeCard(mode: PrivacyMode, on: Boolean, onPick: () -> Unit) {
 @Composable
 fun ContactInfo(s: AppState, c: Contact, compact: Boolean) {
     Head("Contact info", compact, "Back to chat") { s.back() }
+    val groups by produceState(emptyList<String>(), c.name) {
+        value = try { s.core.safetyNumber(c) } catch (e: Exception) { emptyList() }
+    }
     Page {
         Column(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp), Alignment.CenterHorizontally) {
             Avatar(c.name, 88.dp, Ty.num)
             Txt(c.name, Ty.h1, T.textStrong)
             MetaLine(c)
             Row(Modifier.padding(top = 8.dp), Arrangement.spacedBy(12.dp)) {
-                QuickAction(IC.chat, "Message") { s.go(Route.Chat) }
-                QuickAction(IC.phone, "Call", c.inUse.allowsCalls) { s.toast("Calling ${c.name} over iroh…") }
-                QuickAction(if (c.peek) IC.eyeoff else IC.eye, "Peek") { c.peek = !c.peek }
+                QuickAction(IC.chat, "Message") { s.nav(Route.Chat) }
+                QuickAction(IC.phone, "Call", enabled = false) {}
+                QuickAction(if (c.peek) IC.eyeoff else IC.eye, "Peek") { s.core.setPeek(c, !c.peek) }
             }
         }
         Section("Safety number") {
-            val groups = s.core.safetyNumber(c)
             Card {
                 Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 20.dp).semantics { contentDescription = "Safety number" }, Arrangement.spacedBy(8.dp), Alignment.CenterHorizontally) {
                     groups.chunked(4).forEach { line ->
@@ -335,24 +275,15 @@ fun ContactInfo(s: AppState, c: Contact, compact: Boolean) {
                     }
                 }
             }
-            Help(if (c.verified) "You checked these in person. They change only if ${c.name} resets their identity." else "Compare these 60 digits with ${c.name} in person or on a voice call.")
+            Help(if (c.verified) "You marked these as checked. They change only if ${c.name} resets their identity." else "Compare these 60 digits with ${c.name} in person or on a voice call.")
             if (!c.verified) Btn("The numbers match", { s.core.markVerified(c); s.toast("${c.name} is verified") }, kind = Kind.Primary)
         }
         Section("This chat") {
             Card {
                 LRowBtn("Privacy mode", { s.editMode(c) }, value = c.inUse.label, chevron = true)
                 Hair()
-                SwitchRow("Peek mode", "Blur messages until held or hovered", c.peek) { c.peek = it }
+                SwitchRow("Peek mode", "Blur messages until held or hovered", c.peek) { s.core.setPeek(c, it) }
             }
-        }
-        Section("${c.name}'s devices") {
-            Card {
-                c.devices.forEachIndexed { i, d ->
-                    if (i > 0) Hair()
-                    LRow(d.name, icon = d.icon, value = d.level)
-                }
-            }
-            Help("Screenshot protection as reported by their app. A claim, not proof.")
         }
     }
 }
@@ -370,52 +301,50 @@ private fun QuickAction(icon: String, label: String, enabled: Boolean = true, on
 
 // ---------- Settings ----------
 
-private val COVER = listOf("Off", "Low", "Normal", "High")
-private val COVER_HELP = listOf(
-    "Off: timing can link you to contacts in Untraceable chats.",
-    "Low: about 2% battery a day while open.",
-    "Normal: about 4% battery a day while open. Recommended.",
-    "High: about 8% battery a day while open.",
+private val PLANNED_NETWORKS = listOf(
+    "Veilid" to "Offline mail",
+    "Tor" to "Hides your IP for Private chats",
+    "Nym" to "Hides timing for Untraceable chats",
 )
 
 @Composable
 fun Settings(s: AppState, compact: Boolean, captureBlocked: Boolean) {
-    val nymDown = s.core.anyNetworkDown
     Head("Settings", compact, "Back to chats") { s.back() }
     Page {
         Section("Identity") {
             Card {
-                LRow("Rust core", icon = IC.info, value = uniffi.kumiho_core.coreVersion(), mono = true)
+                LRow("Fingerprint", icon = IC.key, value = s.core.fingerprint, mono = true)
                 Hair()
-                LRow("Fingerprint", icon = IC.key, value = "7f3a 91c2 0be4", mono = true)
-                Hair()
-                LRow("Keys", "Sealed by this device's security chip", IC.lock, "On device")
+                LRow(
+                    "Keys",
+                    if (s.vault.seals) "Database key sealed by this device" else "Database key derived from your passphrase",
+                    IC.lock,
+                    "On device",
+                )
             }
         }
         Section("Networks") {
             Card {
-                listOf(
-                    "Veilid" to "Finds contacts and holds offline mail",
-                    "iroh" to "Direct pipe for Fast chats",
-                    "Tor" to "Hides your IP for Private chats",
-                    "Nym" to "Hides timing for Untraceable chats",
-                ).forEachIndexed { i, (name, job) ->
-                    if (i > 0) Hair()
-                    val down = name == "Nym" && nymDown
+                Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(horizontal = 16.dp, vertical = 12.dp), Arrangement.spacedBy(12.dp), Alignment.CenterVertically) {
+                    NetDot(s.core.onlineCount > 0)
+                    Column(Modifier.weight(1f)) {
+                        Txt("iroh", Ty.body, T.textStrong)
+                        Txt("Direct pipe for Fast chats", Ty.micro, T.muted)
+                    }
+                    Txt("${s.core.onlineCount} online", Ty.body, T.muted, maxLines = 1)
+                }
+                PLANNED_NETWORKS.forEach { (name, job) ->
+                    Hair()
                     Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(horizontal = 16.dp, vertical = 12.dp), Arrangement.spacedBy(12.dp), Alignment.CenterVertically) {
-                        NetDot(down)
+                        NetDot(false)
                         Column(Modifier.weight(1f)) {
                             Txt(name, Ty.body, T.textStrong)
                             Txt(job, Ty.micro, T.muted)
                         }
-                        Txt(if (down) "Retrying in 0:24" else "Connected", Ty.body, T.muted, maxLines = 1)
+                        Txt("Not built yet", Ty.body, T.muted, maxLines = 1)
                     }
                 }
             }
-        }
-        Section("Cover traffic") {
-            Seg(COVER, s.cover, { s.cover = it }, full = true)
-            Help(COVER_HELP[s.cover])
         }
         Section("This device") {
             Card {
@@ -426,18 +355,7 @@ fun Settings(s: AppState, compact: Boolean, captureBlocked: Boolean) {
                     if (captureBlocked) "Blocked" else "Not blocked",
                 )
                 Hair()
-                SwitchRow("Message previews in notifications", "Off shows only “New message”", s.previews) { s.previews = it }
-                Hair()
                 LRow("Appearance") { Seg(listOf("Dark", "Light"), if (s.dark) 0 else 1, { s.dark = it == 0 }) }
-            }
-        }
-        Section("Linked devices") {
-            Card {
-                LRow("This computer", icon = IC.monitor, value = "Always on")
-                Hair()
-                LRow("Pixel 9", icon = IC.mobile, value = "3 weeks ago")
-                Hair()
-                LRowBtn("Link a device", { s.goAdd(link = true) }, icon = IC.plus, accent = true)
             }
         }
         Section("Panic wipe") {
@@ -490,19 +408,19 @@ private fun HoldToWipe(onWipe: () -> Unit) {
     }
 }
 
-// ---------- First run ----------
-
-private val OB_STEPS = listOf("This device is ready", "Identity keys created", "Storage key sealed in the security chip", "Networks reached")
+// ---------- First run and unlock ----------
 
 @Composable
 fun Onboard(s: AppState) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).heightIn(min = maxHeight).padding(24.dp), Alignment.Center) {
             Column(Modifier.widthIn(max = 340.dp).fillMaxWidth(), Arrangement.spacedBy(32.dp), Alignment.CenterHorizontally) {
-                when (s.obStep) {
-                    ObStep.Welcome -> ObWelcome(s)
-                    ObStep.Making -> ObMaking(s)
-                    ObStep.Ready -> ObReady(s)
+                when (s.gate) {
+                    Gate.Welcome -> ObWelcome(s)
+                    Gate.Making -> ObMaking(s)
+                    Gate.Ready -> ObReady(s)
+                    Gate.Unlock -> ObUnlock(s)
+                    else -> Unit
                 }
             }
         }
@@ -514,9 +432,19 @@ fun Onboard(s: AppState) {
 private fun Modifier.stagger(i: Int) = enter("ob", dy = 8.dp, ms = 420, delayMs = i * 60)
 
 @Composable
+private fun PassField(value: String, onChange: (String) -> Unit, placeholder: String) {
+    var show by remember { mutableStateOf(false) }
+    Field(
+        value, onChange, placeholder, label = "Passphrase", password = !show,
+        trailing = { IconBtn(if (show) IC.eyeoff else IC.eye, if (show) "Hide passphrase" else "Show passphrase", { show = !show }) },
+    )
+}
+
+@Composable
 private fun ObWelcome(s: AppState) {
     var pass by remember { mutableStateOf("") }
-    var show by remember { mutableStateOf(false) }
+    val required = !s.vault.seals
+    val tooShort = pass.isNotEmpty() && pass.length < 8
     Orb(7, 200.dp, Modifier.stagger(0))
     Column(Modifier.stagger(1), Arrangement.spacedBy(8.dp), Alignment.CenterHorizontally) {
         Txt("구미호 · 아홉 꼬리 여우", Ty.kr, T.faint)
@@ -524,21 +452,47 @@ private fun ObWelcome(s: AppState) {
         Txt("Private messages with no phone number and no server you have to trust.", Ty.body, T.muted, align = TextAlign.Center)
     }
     Column(Modifier.stagger(2).fillMaxWidth(), Arrangement.spacedBy(12.dp)) {
-        Btn("Create my identity", { s.createIdentity() }, kind = Kind.Primary, wide = true)
-        Details("Add an app passphrase (optional)") {
+        if (required) {
             Txt("Passphrase", Ty.microMed, T.muted)
-            Field(
-                pass, { pass = it }, "At least 8 characters", label = "Passphrase", password = !show,
-                trailing = { IconBtn(if (show) IC.eyeoff else IC.eye, if (show) "Hide passphrase" else "Show passphrase", { show = !show }) },
-            )
-            Help("Mixed into your storage key. Required on Linux without a TPM.")
+            PassField(pass, { pass = it }, "At least 8 characters")
+            Help("This device has no key store Kumiho can use yet, so your passphrase protects everything. It can't be recovered.")
+        }
+        Btn("Create my identity", { s.createIdentity(pass) }, kind = Kind.Primary, wide = true, enabled = !tooShort && (!required || pass.isNotEmpty()))
+        if (s.gateError.isNotEmpty()) ErrLine(s.gateError)
+        if (!required) {
+            Details("Add an app passphrase (optional)") {
+                Txt("Passphrase", Ty.microMed, T.muted)
+                PassField(pass, { pass = it }, "At least 8 characters")
+                Help("Mixed into your storage key. You'll type it each time you open Kumiho, and it can't be recovered.")
+            }
         }
     }
 }
 
 @Composable
+private fun ObUnlock(s: AppState) {
+    var pass by remember { mutableStateOf("") }
+    Orb(7, 160.dp, Modifier.stagger(0))
+    Column(Modifier.stagger(1), Arrangement.spacedBy(8.dp), Alignment.CenterHorizontally) {
+        Txt("Welcome back", Ty.h1, T.textStrong)
+        Txt("Enter your passphrase to open your messages.", Ty.body, T.muted, align = TextAlign.Center)
+    }
+    Column(Modifier.stagger(2).fillMaxWidth(), Arrangement.spacedBy(12.dp)) {
+        PassField(pass, { pass = it }, "Passphrase")
+        if (s.gateError.isNotEmpty()) ErrLine(s.gateError)
+        Btn("Unlock", { s.unlock(pass) }, kind = Kind.Primary, wide = true, enabled = pass.isNotEmpty())
+    }
+}
+
+@Composable
 private fun ObMaking(s: AppState) {
-    val bar by animateFloatAsState(s.obDone.toFloat() / OB_STEPS.size, tween(400, easing = EOut))
+    val steps = listOf(
+        "This device is ready",
+        "Identity keys created",
+        if (s.vault.seals) "Storage key sealed on this device" else "Storage encrypted with your passphrase",
+        "Network started",
+    )
+    val bar by animateFloatAsState(s.obDone.toFloat() / steps.size, tween(400, easing = EOut))
     Column(Modifier.semantics { liveRegion = LiveRegionMode.Polite }, Arrangement.spacedBy(8.dp), Alignment.CenterHorizontally) {
         Txt("Setting up this device", Ty.h2, T.textStrong)
         Txt("This takes a few seconds and happens entirely on this device.", Ty.body, T.muted, align = TextAlign.Center)
@@ -547,7 +501,7 @@ private fun ObMaking(s: AppState) {
         Box(Modifier.fillMaxWidth(bar).fillMaxHeight().background(T.brand))
     }
     Column(Modifier.fillMaxWidth(), Arrangement.spacedBy(12.dp)) {
-        OB_STEPS.forEachIndexed { i, text ->
+        steps.forEachIndexed { i, text ->
             val done = i < s.obDone
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(Modifier.size(20.dp), Alignment.Center) {
@@ -568,10 +522,10 @@ private fun ObReady(s: AppState) {
     Box(Modifier.size(120.dp).stagger(0), Alignment.Center) { CheckDisc() }
     Column(Modifier.stagger(1), Arrangement.spacedBy(8.dp), Alignment.CenterHorizontally) {
         Txt("You're ready", Ty.h2, T.textStrong)
-        Txt("Add your first contact. They scan your Glyph, or you read them a short code.", Ty.body, T.muted, align = TextAlign.Center)
+        Txt("Add your first contact. Read them a short one-time code.", Ty.body, T.muted, align = TextAlign.Center)
     }
     Column(Modifier.stagger(2).fillMaxWidth(), Arrangement.spacedBy(12.dp)) {
-        Btn("Add my first contact", { s.onboard = false; s.goAdd() }, kind = Kind.Primary, wide = true)
-        Btn("Later", { s.onboard = false; s.route = Route.Empty }, kind = Kind.Ghost, wide = true)
+        Btn("Add my first contact", { s.gate = Gate.Open; s.goAdd() }, kind = Kind.Primary, wide = true)
+        Btn("Later", { s.gate = Gate.Open; s.nav(Route.Empty) }, kind = Kind.Ghost, wide = true)
     }
 }

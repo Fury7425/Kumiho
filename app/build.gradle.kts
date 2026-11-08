@@ -23,6 +23,7 @@ cargo {
 uniffi {
     generateFromLibrary {
         namespace = "kumiho_core"
+        build = GobleyHost.current.rustTarget // bindings come from the host build, so desktop jobs never need the NDK
     }
 }
 
@@ -48,6 +49,7 @@ kotlin {
             dependencies {
                 implementation(compose.desktop.currentOs)
                 implementation("net.java.dev.jna:jna:5.18.1") // capture shield, and UniFFI's bindings
+                implementation("net.java.dev.jna:jna-platform:5.18.1") // DPAPI key sealing on Windows
             }
         }
         val desktopTest by getting {

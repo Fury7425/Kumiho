@@ -7,8 +7,8 @@ fn pair() -> (TempDir, Account, Account) {
     let dir = TempDir::new().unwrap();
     let a = Account::open(&dir.path().join("a.db"), PASS).unwrap();
     let b = Account::open(&dir.path().join("b.db"), PASS).unwrap();
-    a.add_contact("bob", &b.export_card("b-endpoint").unwrap()).unwrap();
-    b.add_contact("alice", &a.export_card("a-endpoint").unwrap()).unwrap();
+    a.add_contact("bob", &b.export_card("b-endpoint").unwrap(), false).unwrap();
+    b.add_contact("alice", &a.export_card("a-endpoint").unwrap(), false).unwrap();
     (dir, a, b)
 }
 
@@ -85,8 +85,8 @@ fn sessions_and_outbox_survive_reopening() {
     {
         let a = Account::open(&pa, PASS).unwrap();
         let b = Account::open(&pb, PASS).unwrap();
-        a.add_contact("bob", &b.export_card("b").unwrap()).unwrap();
-        b.add_contact("alice", &a.export_card("a").unwrap()).unwrap();
+        a.add_contact("bob", &b.export_card("b").unwrap(), false).unwrap();
+        b.add_contact("alice", &a.export_card("a").unwrap(), false).unwrap();
         a.send_text("bob", "kept").unwrap();
     }
     let a = Account::open(&pa, PASS).unwrap();
@@ -111,7 +111,7 @@ fn wrong_or_empty_passphrase_is_refused_and_file_is_ciphertext() {
 fn a_taken_name_cannot_be_rebound_to_another_identity() {
     let (dir, a, _b) = pair();
     let mallory = Account::open(&dir.path().join("m.db"), PASS).unwrap();
-    assert!(a.add_contact("bob", &mallory.export_card("m").unwrap()).is_err());
+    assert!(a.add_contact("bob", &mallory.export_card("m").unwrap(), false).is_err());
 }
 
 #[test]

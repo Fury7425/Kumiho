@@ -12,7 +12,7 @@ use async_trait::async_trait;
 use futures_executor::block_on;
 use libsignal_protocol::{
     kem, message_decrypt, message_encrypt, process_prekey_bundle, CiphertextMessage, DeviceId,
-    Direction, GenericSignedPreKey, IdentityChange, IdentityKey, IdentityKeyPair, IdentityKeyStore,
+    Direction, Fingerprint, GenericSignedPreKey, IdentityChange, IdentityKey, IdentityKeyPair, IdentityKeyStore,
     KeyPair, KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyBundle, PreKeyId,
     PreKeyRecord, PreKeySignalMessage, PreKeyStore, ProtocolAddress, PublicKey, SessionRecord,
     SessionStore, SignalMessage, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord,
@@ -57,11 +57,12 @@ CREATE TABLE IF NOT EXISTS signed_prekeys (id INTEGER PRIMARY KEY, record BLOB N
 CREATE TABLE IF NOT EXISTS kyber_prekeys (id INTEGER PRIMARY KEY, record BLOB NOT NULL);
 CREATE TABLE IF NOT EXISTS identities (address TEXT PRIMARY KEY, identity BLOB NOT NULL);
 CREATE TABLE IF NOT EXISTS contacts (
-  name TEXT PRIMARY KEY, address TEXT NOT NULL, endpoint TEXT NOT NULL);
+  name TEXT PRIMARY KEY, address TEXT NOT NULL, endpoint TEXT NOT NULL,
+  verified INTEGER NOT NULL DEFAULT 0, peek INTEGER NOT NULL DEFAULT 0, unread INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE IF NOT EXISTS sessions (address TEXT PRIMARY KEY, record BLOB NOT NULL);
 CREATE TABLE IF NOT EXISTS messages (
   contact TEXT NOT NULL, outgoing INTEGER NOT NULL, seq INTEGER NOT NULL,
-  text TEXT NOT NULL, status TEXT NOT NULL, PRIMARY KEY (contact, outgoing, seq));
+  text TEXT NOT NULL, status TEXT NOT NULL, at_ms INTEGER NOT NULL, PRIMARY KEY (contact, outgoing, seq));
 CREATE TABLE IF NOT EXISTS outbox (
   contact TEXT NOT NULL, seq INTEGER NOT NULL, kind INTEGER NOT NULL, body BLOB NOT NULL,
   attempts INTEGER NOT NULL DEFAULT 0, next_at INTEGER NOT NULL DEFAULT 0,
@@ -79,6 +80,10 @@ fn device() -> DeviceId {
 /// Sessions are keyed by identity key, which both sides agree on. Contact names are private labels.
 fn address_of(identity: &IdentityKey) -> ProtocolAddress {
     ProtocolAddress::new(hex::encode(identity.serialize()), device())
+}
+
+pub fn now_ms() -> u64 {
+    SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
 }
 
 /// 1 s, doubling, capped at 60 s.
@@ -127,6 +132,16 @@ pub struct Line {
     pub seq: u64,
     pub text: String,
     pub status: String,
+    pub at_ms: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ContactRow {
+    pub name: String,
+    pub endpoint: String,
+    pub verified: bool,
+    pub peek: bool,
+    pub unread: u32,
 }
 
 /// A contact card: everything the other side needs, exchanged by hand until Glyph pairing (step 4).
@@ -333,9 +348,7 @@ impl Account {
         let signed_sig = identity.private_key().calculate_signature(&signed_public, &mut r).map_err(SignalProtocolError::from)?;
         let kyber_sig = identity.private_key().calculate_signature(&kyber_public, &mut r).map_err(SignalProtocolError::from)?;
         let (pre_key_id, signed_id, kyber_id): (u32, u32, u32) = (r.random(), r.random(), r.random());
-        let now = Timestamp::from_epoch_millis(
-            SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0),
-        );
+        let now = Timestamp::from_epoch_millis(now_ms());
         let mut s = self.sql.clone();
         block_on(async {
             s.save_pre_key(pre_key_id.into(), &PreKeyRecord::new(pre_key_id.into(), &pre)).await?;
@@ -359,7 +372,7 @@ impl Account {
     }
 
     /// Pins the card's identity key and starts a session. Fails if the name is already taken.
-    pub fn add_contact(&self, name: &str, card: &str) -> Result<()> {
+    pub fn add_contact(&self, name: &str, card: &str, verified: bool) -> Result<()> {
         let c: Card = serde_json::from_str(card)?;
         let identity = IdentityKey::decode(&c.identity)?;
         let bundle = PreKeyBundle::new(
@@ -376,12 +389,58 @@ impl Account {
         )?;
         let remote = address_of(&identity);
         self.tx(|| {
-            self.sql.0.execute("INSERT INTO contacts (name, address, endpoint) VALUES (?, ?, ?)", params![name, remote.name(), c.endpoint])?;
+            self.sql.0.execute("INSERT INTO contacts (name, address, endpoint, verified) VALUES (?, ?, ?, ?)", params![name, remote.name(), c.endpoint, verified as i64])?;
             self.sql.write("INSERT OR REPLACE INTO identities (address, identity) VALUES (?, ?)", params![remote.name(), &*identity.serialize()])?;
             let (mut s, mut i) = (self.sql.clone(), self.sql.clone());
             block_on(process_prekey_bundle(&remote, &self.local, &mut s, &mut i, &bundle, SystemTime::now(), &mut rng()))?;
             Ok(())
         })
+    }
+
+    pub fn contacts(&self) -> Result<Vec<ContactRow>> {
+        let mut stmt = self.sql.0.prepare("SELECT name, endpoint, verified, peek, unread FROM contacts ORDER BY rowid DESC")?;
+        let rows = stmt.query_map([], |r| {
+            Ok(ContactRow {
+                name: r.get(0)?,
+                endpoint: r.get(1)?,
+                verified: r.get::<_, i64>(2)? == 1,
+                peek: r.get::<_, i64>(3)? == 1,
+                unread: r.get::<_, i64>(4)? as u32,
+            })
+        })?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
+    pub fn mark_read(&self, name: &str) -> Result<()> {
+        self.sql.0.execute("UPDATE contacts SET unread = 0 WHERE name = ?", [name])?;
+        Ok(())
+    }
+
+    pub fn mark_verified(&self, name: &str) -> Result<()> {
+        self.sql.0.execute("UPDATE contacts SET verified = 1 WHERE name = ?", [name])?;
+        Ok(())
+    }
+
+    pub fn set_peek(&self, name: &str, on: bool) -> Result<()> {
+        self.sql.0.execute("UPDATE contacts SET peek = ? WHERE name = ?", params![on as i64, name])?;
+        Ok(())
+    }
+
+    /// The start of our public identity key, for display only.
+    pub fn fingerprint(&self) -> String {
+        let hex = self.local.name();
+        // The first byte is a key-type tag and says nothing about the person.
+        format!("{} {} {}", &hex[2..6], &hex[6..10], &hex[10..14])
+    }
+
+    /// 60 digits in 12 groups of 5: the same on both sides only if neither identity was swapped.
+    pub fn safety_number(&self, name: &str) -> Result<Vec<String>> {
+        let remote = self.remote(name)?;
+        let their_key = block_on(self.sql.get_identity(&remote))?.ok_or_else(|| Error::UnknownContact(name.into()))?;
+        let ours = self.sql.pair()?;
+        let fp = Fingerprint::new(2, 5200, self.local.name().as_bytes(), ours.identity_key(), remote.name().as_bytes(), &their_key)?;
+        let digits = fp.display_string()?;
+        Ok(digits.as_bytes().chunks(5).map(|c| String::from_utf8_lossy(c).into_owned()).collect())
     }
 
     pub fn contact_endpoint(&self, name: &str) -> Result<String> {
@@ -445,7 +504,7 @@ impl Account {
                 |r| r.get(0),
             )?;
             let (kind, body) = self.encrypt(&remote, &plain(TAG_TEXT, seq as u64, text.as_bytes()))?;
-            self.sql.0.execute("INSERT INTO messages (contact, outgoing, seq, text, status) VALUES (?, 1, ?, ?, 'queued')", params![name, seq, text])?;
+            self.sql.0.execute("INSERT INTO messages (contact, outgoing, seq, text, status, at_ms) VALUES (?, 1, ?, ?, 'queued', ?)", params![name, seq, text, now_ms() as i64])?;
             self.sql.0.execute("INSERT INTO outbox (contact, seq, kind, body) VALUES (?, ?, ?, ?)", params![name, seq, kind as i64, body])?;
             Ok(seq as u64)
         })
@@ -471,6 +530,7 @@ impl Account {
             "UPDATE outbox SET attempts = ?, next_at = ? WHERE contact = ? AND seq = ?",
             params![attempts + 1, (now_ms + backoff_ms(attempts as u32)) as i64, name, seq as i64],
         )?;
+        self.sql.0.execute("UPDATE messages SET status = 'sent' WHERE contact = ? AND outgoing = 1 AND seq = ? AND status = 'queued'", params![name, seq as i64])?;
         Ok(())
     }
 
@@ -499,9 +559,10 @@ impl Account {
                     }
                     let text = String::from_utf8(p[9..].to_vec()).map_err(|_| Error::Frame)?;
                     self.sql.0.execute(
-                        "INSERT OR IGNORE INTO messages (contact, outgoing, seq, text, status) VALUES (?, 0, ?, ?, 'received')",
-                        params![name, seq as i64, text],
+                        "INSERT OR IGNORE INTO messages (contact, outgoing, seq, text, status, at_ms) VALUES (?, 0, ?, ?, 'received', ?)",
+                        params![name, seq as i64, text, now_ms() as i64],
                     )?;
+                    self.sql.0.execute("UPDATE contacts SET unread = unread + 1 WHERE name = ?", [name])?;
                     Ok(Incoming::Text { seq, text })
                 }
                 TAG_ACK => {
@@ -530,9 +591,9 @@ impl Account {
     }
 
     pub fn history(&self, name: &str) -> Result<Vec<Line>> {
-        let mut stmt = self.sql.0.prepare("SELECT outgoing, seq, text, status FROM messages WHERE contact = ? ORDER BY rowid")?;
+        let mut stmt = self.sql.0.prepare("SELECT outgoing, seq, text, status, at_ms FROM messages WHERE contact = ? ORDER BY rowid")?;
         let rows = stmt.query_map([name], |r| {
-            Ok(Line { outgoing: r.get::<_, i64>(0)? == 1, seq: r.get::<_, i64>(1)? as u64, text: r.get(2)?, status: r.get(3)? })
+            Ok(Line { outgoing: r.get::<_, i64>(0)? == 1, seq: r.get::<_, i64>(1)? as u64, text: r.get(2)?, status: r.get(3)?, at_ms: r.get::<_, i64>(4)? as u64 })
         })?;
         Ok(rows.collect::<rusqlite::Result<_>>()?)
     }

@@ -16,9 +16,9 @@ Early design stage. Nothing here is usable for real messages yet.
 | --- | --- |
 | [UI mockup canvas](https://claude.ai/artifact/DLqbFoYkYEhWxkompU82N4) | Minimal interactive mockup: desktop app plus six phone frames in light and dark. |
 | [`mockup/`](mockup/index.html) | Earlier single-file HTML mockup. Open `mockup/index.html` in a browser. |
-| [`core/`](core/) | Rust core. `account.rs` has real libsignal sessions (PQXDH + Triple Ratchet), SQLCipher storage, sequence numbers, a retrying outbox and encrypted ACKs. Everything else, including the app's FFI, is still stubs. |
-| [`cli/`](cli/) | Two-terminal chat over iroh, using the real core. Contact cards are swapped by hand. Not reviewed: do not rely on it. |
-| [`app/`](app/) | Compose Multiplatform UI, every screen from the canvas, for desktop and Android. Runs on an in-memory demo core (`Core.kt`): no crypto, no network, nothing saved. The capture shield is real on Windows and Android. |
+| [`core/`](core/) | Rust core. `account.rs`: libsignal sessions (PQXDH + Triple Ratchet), SQLCipher storage, sequence numbers, a retrying outbox and encrypted ACKs. `node.rs`: iroh links and SPAKE2 code pairing, exported through UniFFI. |
+| [`cli/`](cli/) | Two-terminal test client on the same core. Nothing here has had a security review: do not rely on it. |
+| [`app/`](app/) | Compose Multiplatform UI for desktop and Android, on the real Rust core through UniFFI: code pairing, encrypted direct chat, encrypted storage. Both people must be online. Fast mode only; Glyph, Private, Untraceable, files and calls are shown as not built yet. |
 
 ## Architecture
 

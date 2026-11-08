@@ -5,20 +5,42 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlin.math.floor
+import kotlinx.coroutines.withContext
+import uniffi.kumiho_core.ContactInfo
+import uniffi.kumiho_core.Events
+import uniffi.kumiho_core.MessageInfo
+import uniffi.kumiho_core.Node
+import uniffi.kumiho_core.PairingCode
 
-/** Local wall-clock time as HH:MM. */
-expect fun clock(): String
+/** HH:MM today, otherwise the date. */
+expect fun formatTime(atMs: Long): String
 
-/** Ordered least to most private, so `maxOf` is "stricter". Same rule as core/src/lib.rs until the FFI lands. */
+/** Where a platform keeps the database and the key that seals it. */
+interface Vault {
+    val dbPath: String
+    val hasDatabase: Boolean
+
+    /** True if the OS can seal a key (Android Keystore, Windows DPAPI). Otherwise a passphrase is required. */
+    val seals: Boolean
+
+    /** A device-sealed secret mixed into the database key, created on first use. Empty if [seals] is false. */
+    fun secret(): String
+
+    fun forget()
+}
+
+/** Ordered least to most private, so `maxOf` is "stricter". Same rule as core/src/lib.rs. */
 enum class PrivacyMode(val label: String, val kr: String, val mark: String) {
     Fast("Fast", "빠르게", ""),
     Private("Private", "은밀하게", "M6 1.5a4.5 4.5 0 0 0 0 9Z"),
     Untraceable("Untraceable", "흔적 없이", "M6 1.5a4.5 4.5 0 1 1 0 9a4.5 4.5 0 1 1 0-9");
 
     val allowsCalls get() = this == Fast
+
+    /** Only iroh exists so far. The others stay visible but can't be chosen, so nothing claims more than it does. */
+    val available get() = this == Fast
 
     companion object {
         fun inUse(mine: PrivacyMode, theirs: PrivacyMode) = maxOf(mine, theirs)
@@ -28,69 +50,37 @@ enum class PrivacyMode(val label: String, val kr: String, val mark: String) {
 enum class DeliveryStatus(val icon: String, val label: String) {
     Queued(IC.clock, "Queued, waiting for the network"),
     Sent(IC.check, "Sent"),
-    Stored(IC.inbox, "Stored in their mailbox"),
-    Delivered(IC.check2, "Delivered"),
-    Read(IC.check2, "Read"),
+    Delivered(IC.check2, "Delivered");
+
+    companion object {
+        fun of(s: String) = when (s) {
+            "delivered" -> Delivered
+            "sent" -> Sent
+            "queued" -> Queued
+            else -> null
+        }
+    }
 }
 
-enum class Who { Me, Them, Notice }
-
-class Msg(
-    val id: Long,
-    val who: Who,
-    val text: String,
-    val time: String = "",
-    status: DeliveryStatus? = null,
-    val icon: String = IC.info,
-    val capture: Boolean = false,
-    val verify: Boolean = false,
-    var isNew: Boolean = false,
-) {
+class Msg(val seq: Long, val mine: Boolean, val text: String, val atMs: Long, status: DeliveryStatus?, var isNew: Boolean = false) {
     var status by mutableStateOf(status)
+    val time get() = formatTime(atMs)
+    val key get() = "$mine-$seq"
 }
 
-class Device(val icon: String, val name: String, val level: String)
-
-class Contact(
-    val id: String,
-    val name: String,
-    mode: PrivacyMode,
-    val theirMode: PrivacyMode,
-    verified: Boolean,
-    peek: Boolean = false,
-    unread: Int = 0,
-    nymDown: Boolean = false,
-    val shield: String = "",
-    val devices: List<Device>,
-    msgs: List<Msg>,
-) {
-    var mode by mutableStateOf(mode)
+class Contact(val name: String, verified: Boolean, peek: Boolean, unread: Int) {
     var verified by mutableStateOf(verified)
     var peek by mutableStateOf(peek)
     var unread by mutableStateOf(unread)
-    var nymDown by mutableStateOf(nymDown)
-    val msgs = mutableStateListOf<Msg>().apply { addAll(msgs) }
+    var online by mutableStateOf(false)
+    val msgs = mutableStateListOf<Msg>()
 
-    val inUse get() = PrivacyMode.inUse(mode, theirMode)
+    val inUse get() = PrivacyMode.Fast
     val queued get() = msgs.count { it.status == DeliveryStatus.Queued }
-    val lastMessage get() = msgs.lastOrNull { it.who != Who.Notice }
+    val lastMessage get() = msgs.lastOrNull()
 }
 
-const val DEMO_WORDS = "river-maple · orbit-tiger-seven"
-const val DEMO_DIGITS = "4821-0937 · 5512-8803-1146"
-
-enum class CodeCheck { Ok, Malformed, Wrong }
-
-fun checkPairingCode(input: String): CodeCheck {
-    val v = input.trim().lowercase()
-    val words = v.replace("·", " ").split(Regex("[\\s-]+")).filter { it.isNotEmpty() }
-    val digits = v.filter { it in '0'..'9' }
-    if (!(words.size == 5 && Regex("[a-z\\s·-]+").matches(v)) && digits.length != 20) return CodeCheck.Malformed
-    val match = words.joinToString("-") == "river-maple-orbit-tiger-seven" || digits == "48210937551288031146"
-    return if (match) CodeCheck.Ok else CodeCheck.Wrong
-}
-
-/** mulberry32, as in the canvas, so the demo orb and safety numbers come out the same. */
+/** mulberry32, as in the canvas, so the decorative orb looks the same. */
 fun rng(seed: Int): () -> Double {
     var a = seed
     return {
@@ -101,134 +91,147 @@ fun rng(seed: Int): () -> Double {
     }
 }
 
-private fun fnv(s: String): Int {
-    var h = 2166136261L.toInt()
-    for (ch in s) h = (h xor ch.code) * 16777619
-    return h
-}
+private fun MessageInfo.toMsg(animate: Boolean = false) =
+    Msg(seq.toLong(), outgoing, text, atMs.toLong(), if (outgoing) DeliveryStatus.of(status) else null, animate)
 
-private val TIMING = mapOf(
-    PrivacyMode.Fast to listOf(DeliveryStatus.Sent to 120L, DeliveryStatus.Delivered to 500L),
-    PrivacyMode.Private to listOf(DeliveryStatus.Sent to 400L, DeliveryStatus.Stored to 1100L, DeliveryStatus.Delivered to 1900L),
-    PrivacyMode.Untraceable to listOf(DeliveryStatus.Sent to 900L, DeliveryStatus.Stored to 2600L, DeliveryStatus.Delivered to 4600L),
-)
+/** The UI's view of the Rust node. Node calls block on its worker thread, so they all run off the UI thread. */
+class Core(private val scope: CoroutineScope, private val vault: Vault, private val onError: (String) -> Unit) : Events {
+    private var node: Node? = null
+    val contacts = mutableStateListOf<Contact>()
+    var fingerprint by mutableStateOf("")
+    var openChat: String? = null
 
-// ponytail: in-memory stand-in with the spec's Core API names. No crypto, no network, nothing persisted.
-// Replaced by the Gobley bindings to core/ as build-order steps 1-7 land.
-class Core(private val scope: CoroutineScope) {
-    private var nextId = 100L
-    val contacts = mutableStateListOf<Contact>().apply { addAll(seedContacts()) }
+    var pairWords by mutableStateOf<List<String>?>(null)
+    var pairError by mutableStateOf("")
+    var pairBusy by mutableStateOf(false)
 
-    val anyNetworkDown get() = contacts.any { it.nymDown }
-    val queuedAll get() = contacts.sumOf { it.queued }
+    val onlineCount get() = contacts.count { it.online }
 
-    private fun notice(text: String, icon: String, verify: Boolean = false) =
-        Msg(++nextId, Who.Notice, text, icon = icon, verify = verify)
+    private fun find(name: String) = contacts.find { it.name == name }
 
-    private fun deliver(m: Msg, mode: PrivacyMode) = TIMING.getValue(mode).forEach { (status, ms) ->
-        scope.launch { delay(ms); m.status = status }
+    private suspend fun <T> call(block: (Node) -> T): T = withContext(Dispatchers.Default) { block(node!!) }
+
+    private fun fireAndForget(block: (Node) -> Unit) {
+        scope.launch {
+            try {
+                call(block)
+            } catch (e: Exception) {
+                onError(e.message ?: "Something went wrong")
+            }
+        }
+    }
+
+    private fun model(c: ContactInfo, history: List<MessageInfo>) =
+        Contact(c.name, c.verified, c.peek, c.unread.toInt()).apply { msgs.addAll(history.map { it.toMsg() }) }
+
+    /** Opens or creates the database. Throws CoreException.WrongPassphrase if the key is wrong. */
+    suspend fun open(passphrase: String) {
+        val (n, loaded) = withContext(Dispatchers.Default) {
+            val n = Node.start(vault.dbPath, vault.secret() + passphrase, this@Core)
+            n to n.contacts().map { it to n.history(it.name) }
+        }
+        node = n
+        fingerprint = call { it.fingerprint() }
+        contacts.clear()
+        contacts.addAll(loaded.map { (c, h) -> model(c, h) })
     }
 
     fun sendText(c: Contact, text: String, animate: Boolean) {
-        val m = Msg(++nextId, Who.Me, text, clock(), DeliveryStatus.Queued, isNew = animate)
-        c.msgs += m
-        // Never downgrades silently: Untraceable messages wait while Nym is down.
-        if (!(c.nymDown && c.inUse == PrivacyMode.Untraceable)) deliver(m, c.inUse)
+        scope.launch {
+            try {
+                c.msgs += call { it.sendText(c.name, text) }.toMsg(animate)
+            } catch (e: Exception) {
+                onError(e.message ?: "Couldn't send that")
+            }
+        }
     }
 
-    fun acceptDowngrade(c: Contact) {
-        val waiting = c.msgs.filter { it.status == DeliveryStatus.Queued }
-        c.nymDown = false
-        c.msgs += notice("Sent ${waiting.size} over Private while Nym was down", IC.info)
-        waiting.forEach { deliver(it, PrivacyMode.Private) }
+    fun markRead(c: Contact) {
+        c.unread = 0
+        fireAndForget { it.markRead(c.name) }
     }
 
-    fun setContactMode(c: Contact, mode: PrivacyMode) {
-        c.mode = mode
-        c.msgs += notice("You switched to ${mode.label}", IC.shield)
+    fun setPeek(c: Contact, on: Boolean) {
+        c.peek = on
+        fireAndForget { it.setPeek(c.name, on) }
     }
 
     fun markVerified(c: Contact) {
         c.verified = true
-        c.msgs += notice("Safety numbers matched", IC.shieldcheck)
+        fireAndForget { it.markVerified(c.name) }
     }
 
-    fun safetyNumber(c: Contact): List<String> {
-        val r = rng(fnv(c.id))
-        return List(12) { floor(r() * 1e5).toInt().toString().padStart(5, '0') }
+    suspend fun safetyNumber(c: Contact): List<String> = call { it.safetyNumber(c.name) }
+
+    suspend fun startPairing(): PairingCode {
+        pairWords = null
+        pairError = ""
+        pairBusy = false
+        return call { it.startPairing() }
     }
 
-    fun confirmPairing(name: String, mode: PrivacyMode, inPerson: Boolean): Contact {
-        val first = if (inPerson) notice("Paired in person", IC.shieldcheck)
-        else notice("Paired at a distance, not verified yet", IC.info, verify = true)
-        val c = Contact(
-            id = "c${++nextId}", name = name, mode = mode, theirMode = mode, verified = inPerson,
-            devices = listOf(Device(IC.mobile, "Phone", "Blocked")), msgs = listOf(first),
-        )
-        contacts.add(0, c)
-        return c
+    /** Throws CoreException.BadCode if the code isn't in a valid format, which doesn't burn anything. */
+    suspend fun joinPairing(code: String) {
+        pairWords = null
+        pairError = ""
+        call { it.joinPairing(code) }
+        pairBusy = true
     }
 
-    fun panicWipe() = contacts.clear()
+    suspend fun confirmPairing(name: String, inPerson: Boolean): Contact {
+        val info = call { it.confirmPairing(name, inPerson) }
+        pairWords = null
+        return model(info, emptyList()).also { contacts.add(0, it) }
+    }
 
-    private fun seedContacts(): List<Contact> {
-        var id = 0L
-        fun them(text: String, t: String) = Msg(++id, Who.Them, text, t)
-        fun me(text: String, t: String, s: DeliveryStatus) = Msg(++id, Who.Me, text, t, s)
-        fun note(text: String, icon: String, capture: Boolean = false, verify: Boolean = false) =
-            Msg(++id, Who.Notice, text, icon = icon, capture = capture, verify = verify)
-        val u = PrivacyMode.Untraceable
-        return listOf(
-            Contact(
-                "mina", "Mina", u, u, verified = true, unread = 2, shield = "Mina's Mac can't block screenshots",
-                devices = listOf(Device(IC.mobile, "Pixel 8", "Blocked"), Device(IC.monitor, "MacBook Air", "Blur only")),
-                msgs = listOf(
-                    note("Paired in person", IC.shieldcheck),
-                    them("Did pairing work on your laptop?", "20:41"),
-                    me("Yes, scanned it with my phone.", "20:43", DeliveryStatus.Read),
-                    me("Took about two seconds.", "20:43", DeliveryStatus.Read),
-                    them("Good. I'll send the scans of the contract tonight.", "20:44"),
-                    note("Mina took a screenshot · 20:57", IC.camera, capture = true),
-                    me("Saw the screenshot notice. Everything okay?", "20:58", DeliveryStatus.Delivered),
-                    them("Just saving the address.", "21:01"),
-                    them("Deleting it now.", "21:02"),
-                ),
-            ),
-            Contact(
-                "haneul", "Haneul", u, u, verified = true, nymDown = true,
-                devices = listOf(Device(IC.mobile, "iPhone 15", "Blocked, fragile")),
-                msgs = listOf(
-                    them("Boarding now. Signal will be patchy for a while.", "18:20"),
-                    me("Are you still on the ferry?", "19:05", DeliveryStatus.Queued),
-                    me("Message me when you land.", "19:06", DeliveryStatus.Queued),
-                ),
-            ),
-            Contact(
-                "jun", "Jun", PrivacyMode.Private, PrivacyMode.Private, verified = false,
-                devices = listOf(Device(IC.monitor, "Windows desktop", "Blocked")),
-                msgs = listOf(
-                    note("Paired with a code, not verified yet", IC.info, verify = true),
-                    them("The code worked. My words were amber, orbit, lantern, quiet.", "Tue"),
-                    me("Same on mine.", "Tue", DeliveryStatus.Delivered),
-                ),
-            ),
-            Contact(
-                "dad", "Dad", PrivacyMode.Fast, PrivacyMode.Fast, verified = true, unread = 1,
-                devices = listOf(Device(IC.mobile, "Galaxy S23", "Blocked")),
-                msgs = listOf(
-                    them("Dinner on Sunday? Your mum is making galbi-jjim.", "Mon"),
-                    me("I'll be there by six.", "Mon", DeliveryStatus.Read),
-                    them("Bring the good kimchi.", "Mon"),
-                ),
-            ),
-            Contact(
-                "sora", "Sora", u, u, verified = true, peek = true,
-                devices = listOf(Device(IC.mobile, "Pixel 7a", "Blocked")),
-                msgs = listOf(
-                    them("Door code is 4471. Third floor, on the left.", "Sun"),
-                    me("Got it. See you at seven.", "Sun", DeliveryStatus.Read),
-                ),
-            ),
-        )
+    fun cancelPairing() {
+        pairWords = null
+        pairError = ""
+        pairBusy = false
+        if (node != null) fireAndForget { it.cancelPairing() }
+    }
+
+    suspend fun wipe() {
+        call { it.wipe() }
+        node = null
+        vault.forget()
+        contacts.clear()
+        fingerprint = ""
+        openChat = null
+    }
+
+    // Events arrive on the node's thread. Hop to the UI before touching Compose state.
+    override fun message(m: MessageInfo) {
+        scope.launch {
+            val c = find(m.contact) ?: return@launch
+            c.msgs += m.toMsg(animate = true)
+            if (openChat == c.name) markRead(c) else c.unread += 1
+        }
+    }
+
+    override fun status(contact: String, seq: ULong, status: String) {
+        scope.launch {
+            val msg = find(contact)?.msgs?.find { it.mine && it.seq == seq.toLong() } ?: return@launch
+            val next = DeliveryStatus.of(status) ?: return@launch
+            if (msg.status != DeliveryStatus.Delivered) msg.status = next
+        }
+    }
+
+    override fun link(contact: String, up: Boolean) {
+        scope.launch { find(contact)?.online = up }
+    }
+
+    override fun pairingReady(words: List<String>) {
+        scope.launch {
+            pairBusy = false
+            pairWords = words
+        }
+    }
+
+    override fun pairingFailed(reason: String) {
+        scope.launch {
+            pairBusy = false
+            pairError = reason
+        }
     }
 }

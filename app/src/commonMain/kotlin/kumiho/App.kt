@@ -56,70 +56,74 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import uniffi.kumiho_core.CoreException
+import uniffi.kumiho_core.PairingCode
 import kotlin.math.min
-import kotlin.random.Random
 import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeMark
 import kotlin.time.TimeSource
 
 enum class Route { Empty, Chat, Add, Confirm, Mode, Contact, Settings }
 enum class Filter { All, Unread, Unverified }
-enum class ObStep { Welcome, Making, Ready }
+enum class Gate { Checking, Welcome, Making, Ready, Unlock, Open }
 
 class Toast(val id: Long, val text: String) {
     var out by mutableStateOf(false)
 }
 
-class AppState(val core: Core, private val scope: CoroutineScope) {
+class AppState(val vault: Vault, private val scope: CoroutineScope) {
+    val core = Core(scope, vault) { toast(it) }
     var route by mutableStateOf(Route.Empty)
     var cid by mutableStateOf<String?>(null)
     var dark by mutableStateOf(true)
-    var onboard by mutableStateOf(true)
-    var obStep by mutableStateOf(ObStep.Welcome)
+    var gate by mutableStateOf(Gate.Checking)
     var obDone by mutableStateOf(1)
+    var gateError by mutableStateOf("")
     var query by mutableStateOf("")
     var filter by mutableStateOf(Filter.All)
-    var tab by mutableStateOf(0)
-    var linking by mutableStateOf(false)
-    var scanning by mutableStateOf(false)
-    var glyphSeed by mutableStateOf(424242)
-    var glyphDeadline by mutableStateOf<TimeMark>(TimeSource.Monotonic.markNow() + 60.seconds)
-    var codeDeadline by mutableStateOf<TimeMark>(TimeSource.Monotonic.markNow() + 10.minutes)
+    var tab by mutableStateOf(2)
+    var code by mutableStateOf<PairingCode?>(null)
+    var codeDeadline by mutableStateOf<TimeMark>(TimeSource.Monotonic.markNow())
     var newName by mutableStateOf("")
     var nameErr by mutableStateOf(false)
     var inPerson by mutableStateOf(true)
     var modeFor by mutableStateOf<String?>(null)
-    var modePick by mutableStateOf(PrivacyMode.Untraceable)
-    var cover by mutableStateOf(2)
-    var previews by mutableStateOf(false)
     val toasts = mutableStateListOf<Toast>()
     private var toastId = 0L
 
-    val cur get() = core.contacts.find { it.id == cid }
-    val editing get() = modeFor?.let { id -> core.contacts.find { it.id == id } }
+    val cur get() = core.contacts.find { it.name == cid }
+    val editing get() = modeFor?.let { id -> core.contacts.find { it.name == id } }
 
-    fun freshGlyph() {
-        glyphSeed = Random.nextInt(1_000_000_000)
-        glyphDeadline = TimeSource.Monotonic.markNow() + 60.seconds
-        codeDeadline = TimeSource.Monotonic.markNow() + 10.minutes
-    }
+    private fun pairing(r: Route) = r == Route.Add || r == Route.Confirm || (r == Route.Mode && editing == null)
 
-    fun go(r: Route) {
-        if (r == Route.Add && route != Route.Add) { freshGlyph(); scanning = false }
+    fun nav(r: Route) {
+        if (pairing(route) && !pairing(r)) core.cancelPairing()
+        core.openChat = if (r == Route.Chat) cid else null
         route = r
     }
 
-    fun goAdd(link: Boolean = false) {
-        linking = link
-        tab = 0
-        go(Route.Add)
+    fun goAdd() {
+        tab = 2
+        nav(Route.Add)
+        newCode()
+    }
+
+    fun newCode() {
+        code = null
+        scope.launch {
+            try {
+                code = core.startPairing()
+                codeDeadline = TimeSource.Monotonic.markNow() + 10.minutes
+            } catch (e: Exception) {
+                core.pairError = e.message ?: "Couldn't make a code"
+            }
+        }
     }
 
     fun open(c: Contact) {
-        c.unread = 0
-        cid = c.id
-        route = Route.Chat
+        cid = c.name
+        nav(Route.Chat)
+        core.markRead(c)
     }
 
     fun goConfirm() {
@@ -128,14 +132,14 @@ class AppState(val core: Core, private val scope: CoroutineScope) {
         route = Route.Confirm
     }
 
-    fun back() {
-        route = when (route) {
+    fun back() = nav(
+        when (route) {
             Route.Confirm -> Route.Add
             Route.Mode -> if (editing != null) Route.Contact else Route.Confirm
             Route.Contact -> Route.Chat
             else -> Route.Empty
-        }
-    }
+        },
+    )
 
     fun toast(text: String) {
         val t = Toast(++toastId, text)
@@ -146,85 +150,138 @@ class AppState(val core: Core, private val scope: CoroutineScope) {
         }
     }
 
-    fun later(ms: Long, block: () -> Unit) {
-        scope.launch { delay(ms); block() }
-    }
-
-    fun simulateScan() {
-        scanning = true
-        later(1300) { scanning = false; goConfirm() }
-    }
-
     fun confirmMatch() {
         if (newName.isBlank()) { nameErr = true; return }
         modeFor = null
-        modePick = PrivacyMode.Untraceable
         route = Route.Mode
     }
 
+    fun mismatch() {
+        goAdd()
+        toast("Cancelled. Nothing was saved.")
+    }
+
     fun editMode(c: Contact) {
-        modeFor = c.id
-        modePick = c.mode
+        modeFor = c.name
         route = Route.Mode
     }
 
     fun saveMode() {
-        val e = editing
-        modeFor = null
-        if (e != null) {
-            core.setContactMode(e, modePick)
+        if (editing != null) {
+            modeFor = null
             route = Route.Chat
+            core.openChat = cid
             return
         }
-        val c = core.confirmPairing(newName.trim(), modePick, inPerson)
-        cid = c.id
-        route = Route.Chat
-        query = ""
-        filter = Filter.All
-        toast("${c.name} added")
+        scope.launch {
+            try {
+                val c = core.confirmPairing(newName.trim(), inPerson)
+                query = ""
+                filter = Filter.All
+                cid = c.name
+                core.openChat = c.name
+                route = Route.Chat
+                toast("${c.name} added")
+            } catch (e: Exception) {
+                toast("Couldn't add them: ${e.message}")
+            }
+        }
     }
 
-    fun createIdentity() {
-        obStep = ObStep.Making
+    /** On launch: nothing yet means first run; otherwise open silently if no passphrase is set, or ask. */
+    fun boot() {
+        scope.launch {
+            if (!vault.hasDatabase) {
+                gate = Gate.Welcome
+                return@launch
+            }
+            if (!vault.seals) {
+                gate = Gate.Unlock
+                return@launch
+            }
+            try {
+                core.open("")
+                gate = Gate.Open
+            } catch (e: CoreException.WrongPassphrase) {
+                gate = Gate.Unlock
+            } catch (e: Exception) {
+                gateError = e.message ?: "Couldn't open your data"
+                gate = Gate.Unlock
+            }
+        }
+    }
+
+    fun createIdentity(passphrase: String) {
+        gateError = ""
+        gate = Gate.Making
         obDone = 1
         scope.launch {
-            repeat(3) { delay(600); obDone++ }
-            delay(500)
-            obStep = ObStep.Ready
+            try {
+                core.open(passphrase)
+                repeat(3) { obDone++; delay(250) }
+                gate = Gate.Ready
+            } catch (e: Exception) {
+                gateError = e.message ?: "Couldn't set up this device"
+                gate = Gate.Welcome
+            }
+        }
+    }
+
+    fun unlock(passphrase: String) {
+        gateError = ""
+        scope.launch {
+            try {
+                core.open(passphrase)
+                gate = Gate.Open
+            } catch (e: CoreException.WrongPassphrase) {
+                gateError = "That passphrase didn't work."
+            } catch (e: Exception) {
+                gateError = e.message ?: "Couldn't open your data"
+            }
         }
     }
 
     fun wipe() {
-        core.panicWipe()
-        cid = null
-        route = Route.Empty
-        query = ""
-        filter = Filter.All
-        toasts.clear()
-        obStep = ObStep.Welcome
-        obDone = 1
-        onboard = true
+        scope.launch {
+            try {
+                core.wipe()
+                cid = null
+                route = Route.Empty
+                query = ""
+                filter = Filter.All
+                toasts.clear()
+                obDone = 1
+                gate = Gate.Welcome
+            } catch (e: Exception) {
+                toast("Wipe failed: ${e.message}")
+            }
+        }
     }
 }
 
 @Composable
-fun App(captureBlocked: Boolean = false, reduceMotion: Boolean = false) {
+fun App(vault: Vault, captureBlocked: Boolean = false, reduceMotion: Boolean = false) {
     val scope = rememberCoroutineScope()
-    val s = remember { AppState(Core(scope), scope) }
+    val s = remember { AppState(vault, scope) }
     val focus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { focus.requestFocus() }
-    SystemBack(enabled = !s.onboard && s.route != Route.Empty) { s.back() }
+    LaunchedEffect(Unit) {
+        focus.requestFocus()
+        s.boot()
+    }
+    val words = s.core.pairWords
+    LaunchedEffect(words) { if (words != null && s.route == Route.Add) s.goConfirm() }
+    SystemBack(enabled = s.gate == Gate.Open && s.route != Route.Empty) { s.back() }
     CompositionLocalProvider(LocalT provides (if (s.dark) Dark else Light), LocalReduce provides reduceMotion, LocalFonts provides loadFonts()) {
         CompositionLocalProvider(LocalTextSelectionColors provides TextSelectionColors(T.textStrong, T.textStrong.copy(alpha = .3f))) {
             BoxWithConstraints(
                 Modifier.fillMaxSize().background(T.bg).safeDrawingPadding()
                     .onPreviewKeyEvent { e ->
-                        if (e.type == KeyEventType.KeyDown && e.key == Key.Escape && !s.onboard && s.route != Route.Empty) { s.back(); true } else false
+                        if (e.type == KeyEventType.KeyDown && e.key == Key.Escape && s.gate == Gate.Open && s.route != Route.Empty) { s.back(); true } else false
                     }
                     .focusRequester(focus).focusable(),
             ) {
                 val compact = maxWidth < 760.dp
-                if (s.onboard) Onboard(s) else Shell(s, compact, captureBlocked)
+                if (s.gate == Gate.Open) Shell(s, compact, captureBlocked) else Onboard(s)
                 Toasts(s, Modifier.align(Alignment.BottomCenter).padding(bottom = 96.dp))
             }
         }
@@ -249,14 +306,14 @@ private fun Sidebar(s: AppState, compact: Boolean, modifier: Modifier) {
     val q = s.query.trim().lowercase()
     val rows = core.contacts
         .filter { when (s.filter) { Filter.All -> true; Filter.Unread -> it.unread > 0; Filter.Unverified -> !it.verified } }
-        .filter { c -> q.isEmpty() || c.name.lowercase().contains(q) || c.msgs.any { it.who != Who.Notice && it.text.lowercase().contains(q) } }
+        .filter { c -> q.isEmpty() || c.name.lowercase().contains(q) || c.msgs.any { it.text.lowercase().contains(q) } }
     val unreadChats = core.contacts.count { it.unread > 0 }
     Box(modifier.background(T.bg)) {
         Column(Modifier.fillMaxSize()) {
             Row(Modifier.fillMaxWidth().height(64.dp).padding(start = 16.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (compact) {
                     Spacer(Modifier.weight(1f))
-                    IconBtn(IC.gear, "Settings", { s.go(Route.Settings) })
+                    IconBtn(IC.gear, "Settings", { s.nav(Route.Settings) })
                 } else {
                     Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Txt("Kumiho", Ty.name, T.textStrong)
@@ -288,7 +345,7 @@ private fun Sidebar(s: AppState, compact: Boolean, modifier: Modifier) {
                     val listState = rememberLazyListState()
                     Box(Modifier.weight(1f).fillMaxWidth()) {
                         LazyColumn(Modifier.fillMaxSize(), listState, PaddingValues(start = 8.dp, end = 8.dp, bottom = if (compact) 104.dp else 8.dp)) {
-                            items(rows, key = { it.id }) { c -> ChatRow(s, c, current = !compact && s.route == Route.Chat && s.cid == c.id) }
+                            items(rows, key = { it.name }) { c -> ChatRow(s, c, current = !compact && s.route == Route.Chat && s.cid == c.name) }
                         }
                         VScroll(listState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
                     }
@@ -297,13 +354,12 @@ private fun Sidebar(s: AppState, compact: Boolean, modifier: Modifier) {
             if (!compact) {
                 Box(Modifier.fillMaxWidth().height(1.dp).background(T.border))
                 Row(Modifier.fillMaxWidth().height(52.dp).padding(start = 16.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    val down = core.anyNetworkDown
-                    Tap({ s.go(Route.Settings) }, shape = RoundedCornerShape(6.dp), hover = Color.Transparent, arrangement = Arrangement.spacedBy(8.dp)) {
-                        NetDot(down)
-                        Txt(if (down) "Nym down · ${core.queuedAll} queued" else "All 4 networks up", Ty.micro, T.muted, maxLines = 1)
+                    Tap({ s.nav(Route.Settings) }, shape = RoundedCornerShape(6.dp), hover = Color.Transparent, arrangement = Arrangement.spacedBy(8.dp)) {
+                        NetDot(core.onlineCount > 0)
+                        Txt("Direct links · ${core.onlineCount} online", Ty.micro, T.muted, maxLines = 1)
                     }
                     Spacer(Modifier.weight(1f))
-                    IconBtn(IC.gear, "Settings", { s.go(Route.Settings) }, tip = "Settings")
+                    IconBtn(IC.gear, "Settings", { s.nav(Route.Settings) }, tip = "Settings")
                 }
             }
         }
@@ -319,7 +375,7 @@ private fun Sidebar(s: AppState, compact: Boolean, modifier: Modifier) {
 }
 
 @Composable
-fun NetDot(down: Boolean) = Box(Modifier.size(8.dp).clip(CircleShape).background(if (down) T.danger else T.success))
+fun NetDot(on: Boolean) = Box(Modifier.size(8.dp).clip(CircleShape).background(if (on) T.success else T.faint))
 
 @Composable
 private fun Chip(text: String, on: Boolean, count: String? = null, onClick: () -> Unit) {
@@ -337,8 +393,7 @@ private fun Chip(text: String, on: Boolean, count: String? = null, onClick: () -
 private fun ChatRow(s: AppState, c: Contact, current: Boolean) {
     val last = c.lastMessage
     val preview = buildAnnotatedString {
-        if (c.nymDown) withStyle(SpanStyle(color = T.danger)) { append("Waiting for Nym · ") }
-        else if (last?.who == Who.Me) withStyle(SpanStyle(color = T.text)) { append("You: ") }
+        if (last?.mine == true) withStyle(SpanStyle(color = T.text)) { append("You: ") }
         append(last?.text ?: "No messages yet")
     }
     Tap(
@@ -352,7 +407,7 @@ private fun ChatRow(s: AppState, c: Contact, current: Boolean) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Txt(c.name, Ty.name, T.textStrong, maxLines = 1)
-                    if (c.inUse != PrivacyMode.Untraceable) Mark(c.inUse, tint = T.faint)
+                    Mark(c.inUse, tint = T.faint)
                 }
                 Txt(last?.time ?: "", if (c.unread > 0) Ty.microMed else Ty.micro, if (c.unread > 0) T.textStrong else T.faint, maxLines = 1)
             }
@@ -378,7 +433,7 @@ private fun ListEmpty(s: AppState, modifier: Modifier) {
     Box(modifier.fillMaxWidth().padding(32.dp), Alignment.Center) {
         Column(Modifier.widthIn(max = 320.dp), Arrangement.spacedBy(16.dp), Alignment.CenterHorizontally) {
             Txt("Add your first contact", Ty.h2, T.textStrong, align = TextAlign.Center)
-            Tips(listOf(IC.ring to "Together? Let them scan your Glyph.", IC.keyboard to "Apart? Read them a short code.", IC.lock to "No phone number or email involved."))
+            Tips(listOf(IC.keyboard to "Read them a short one-time code.", IC.lock to "No phone number or email involved."))
             Btn("Add contact", { s.goAdd() }, kind = Kind.Primary)
         }
     }
@@ -450,7 +505,7 @@ private fun ColumnScope.Chat(s: AppState, c: Contact, compact: Boolean) {
         if (compact) IconBtn(IC.back, "Back to chats", { s.back() })
         Row(Modifier.weight(1f)) {
             Tap(
-                { s.go(Route.Contact) }, shape = RoundedCornerShape(10.dp), hover = Color.Transparent,
+                { s.nav(Route.Contact) }, shape = RoundedCornerShape(10.dp), hover = Color.Transparent,
                 label = "${c.name}, contact details", arrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Avatar(c.name, 36.dp, Ty.bodyMed)
@@ -460,47 +515,21 @@ private fun ColumnScope.Chat(s: AppState, c: Contact, compact: Boolean) {
                 }
             }
         }
-        val callTip = if (c.inUse.allowsCalls) "Call" else "Calls need Fast mode"
-        IconBtn(IC.phone, callTip, { s.toast("Calling ${c.name} over iroh…") }, tip = callTip, enabled = c.inUse.allowsCalls)
-        IconBtn(if (c.peek) IC.eyeoff else IC.eye, "Peek mode", { c.peek = !c.peek }, tip = if (c.peek) "Peek mode on" else "Peek mode off", on = c.peek)
+        IconBtn(IC.phone, "Calls aren't built yet", {}, tip = "Calls aren't built yet", enabled = false)
+        IconBtn(if (c.peek) IC.eyeoff else IC.eye, "Peek mode", { s.core.setPeek(c, !c.peek) }, tip = if (c.peek) "Peek mode on" else "Peek mode off", on = c.peek)
     }
-    if (c.nymDown && c.queued > 0) NymBanner(s, c)
     Timeline(s, c, compact, Modifier.weight(1f))
     ComposerBar(s, c, compact)
 }
 
 @Composable
-private fun NymBanner(s: AppState, c: Contact) {
-    val q = c.queued
-    val body = buildAnnotatedString {
-        withStyle(SpanStyle(color = T.textStrong, fontWeight = FontWeight.SemiBold)) { append("Nym is unreachable. ") }
-        append("$q ${if (q == 1) "message is" else "messages are"} waiting. Private hides your IP but not when you chat.")
-    }
-    Row(
-        Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp).fillMaxWidth().cardBg().padding(16.dp).semantics { liveRegion = LiveRegionMode.Assertive },
-        Arrangement.spacedBy(12.dp),
-    ) {
-        Ic(IC.alert, tint = T.warning)
-        Column(Modifier.weight(1f), Arrangement.spacedBy(6.dp)) {
-            BasicText(body, style = Ty.body.themed().copy(color = T.text))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Keep waiting is primary: the brightest button shouldn't lower someone's privacy.
-                Btn("Keep waiting", { s.toast("They'll send once Nym is back") }, kind = Kind.Primary, small = true)
-                Btn("Send over Private once", { s.core.acceptDowngrade(c) }, small = true)
-            }
-        }
-    }
-}
-
-@Composable
-private fun Pill(icon: String, text: String, capture: Boolean = false, onVerify: (() -> Unit)? = null) {
-    val color = if (capture) T.danger else T.faint
+private fun Pill(icon: String, text: String, onVerify: (() -> Unit)? = null) {
     Row(
         Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 8.dp, start = 12.dp, end = 12.dp),
         Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally), Alignment.CenterVertically,
     ) {
-        Ic(icon, size = 14.dp, tint = color)
-        Txt(text, Ty.micro.copy(letterSpacing = .2.sp), color, align = TextAlign.Center)
+        Ic(icon, size = 14.dp, tint = T.faint)
+        Txt(text, Ty.micro.copy(letterSpacing = .2.sp), T.faint, align = TextAlign.Center)
         if (onVerify != null) Tap(onVerify, shape = RoundedCornerShape(4.dp), hover = Color.Transparent) { Txt("Verify", Ty.microMed, T.textStrong) }
     }
 }
@@ -508,63 +537,44 @@ private fun Pill(icon: String, text: String, capture: Boolean = false, onVerify:
 @Composable
 private fun Timeline(s: AppState, c: Contact, compact: Boolean, modifier: Modifier) {
     val list = rememberLazyListState()
-    val real = c.msgs.count { it.who != Who.Notice }
-    val total = (if (c.peek) 1 else 0) + (if (c.shield.isNotEmpty()) 1 else 0) + (if (real > 0) 1 else 0) + c.msgs.size + (if (real == 0) 1 else 0)
-    LaunchedEffect(c.id, c.msgs.size) { list.scrollToItem(total - 1) }
+    val total = (if (c.peek) 1 else 0) + (if (c.verified) 0 else 1) + (if (c.online) 0 else 1) + c.msgs.size + (if (c.msgs.isEmpty()) 1 else 0)
+    LaunchedEffect(c.name, c.msgs.size) { if (total > 0) list.scrollToItem(total - 1) }
     val column = Modifier.widthIn(max = 728.dp).fillMaxWidth()
     Box(modifier.fillMaxWidth()) {
-    LazyColumn(
-        Modifier.fillMaxSize().fadeEdges(),
-        state = list,
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 12.dp),
-        verticalArrangement = Arrangement.Bottom,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        if (c.peek) item { Box(column) { Pill(IC.eyeoff, "Peek is on. Hold or hover to read.") } }
-        if (c.shield.isNotEmpty()) item { Box(column) { Pill(IC.shield, c.shield) } }
-        if (real > 0) item {
-            Row(column.padding(top = 12.dp, bottom = 8.dp), Arrangement.spacedBy(12.dp), Alignment.CenterVertically) {
-                Box(Modifier.weight(1f).height(1.dp).background(T.border))
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Txt("Today ·", Ty.micro, T.faint)
-                    Txt("오늘", Ty.kr, T.faint)
-                }
-                Box(Modifier.weight(1f).height(1.dp).background(T.border))
-            }
-        }
-        itemsIndexed(c.msgs, key = { _, m -> m.id }) { i, m ->
-            Box(column) {
-                if (m.who == Who.Notice) {
-                    Pill(m.icon, m.text, m.capture, if (m.verify && !c.verified) { { s.go(Route.Contact) } } else null)
-                } else {
+        LazyColumn(
+            Modifier.fillMaxSize().fadeEdges(),
+            state = list,
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 12.dp),
+            verticalArrangement = Arrangement.Bottom,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            if (c.peek) item { Box(column) { Pill(IC.eyeoff, "Peek is on. Hold or hover to read.") } }
+            if (!c.verified) item { Box(column) { Pill(IC.info, "Paired with a code, not verified yet", onVerify = { s.nav(Route.Contact) }) } }
+            if (!c.online) item { Box(column) { Pill(IC.clock, "Waiting for ${c.name}. Messages send when you both have Kumiho open.") } }
+            itemsIndexed(c.msgs, key = { _, m -> m.key }) { i, m ->
+                Box(column) {
                     val prev = c.msgs.getOrNull(i - 1)
                     val next = c.msgs.getOrNull(i + 1)
-                    Bubble(m, first = prev?.who != m.who, last = next?.who != m.who, peek = c.peek, compact = compact)
+                    Bubble(m, first = prev?.mine != m.mine, last = next?.mine != m.mine, peek = c.peek, compact = compact)
                 }
             }
-        }
-        if (real == 0) item {
-            Box(column.fillParentMaxHeight(.8f), Alignment.Center) {
-                Column(Modifier.widthIn(max = 320.dp), Arrangement.spacedBy(12.dp), Alignment.CenterHorizontally) {
-                    Avatar(c.name, 88.dp, Ty.num)
-                    Txt("Say hello to ${c.name}", Ty.h2, T.textStrong, align = TextAlign.Center)
-                    val speed = when (c.inUse) {
-                        PrivacyMode.Fast -> "Messages arrive instantly."
-                        PrivacyMode.Private -> "Messages take about a second over Tor."
-                        PrivacyMode.Untraceable -> "Messages take a few seconds to hide when you chat."
+            if (c.msgs.isEmpty()) item {
+                Box(column.fillParentMaxHeight(.8f), Alignment.Center) {
+                    Column(Modifier.widthIn(max = 320.dp), Arrangement.spacedBy(12.dp), Alignment.CenterHorizontally) {
+                        Avatar(c.name, 88.dp, Ty.num)
+                        Txt("Say hello to ${c.name}", Ty.h2, T.textStrong, align = TextAlign.Center)
+                        Tips(listOf(IC.clock to "Messages arrive instantly when you're both online.", IC.lock to "Only ${c.name}'s device can read what you send."))
                     }
-                    Tips(listOf(IC.clock to speed, IC.lock to "Only ${c.name}'s devices can read what you send."))
                 }
             }
         }
-    }
-    VScroll(list, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
+        VScroll(list, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
     }
 }
 
 @Composable
 private fun Bubble(m: Msg, first: Boolean, last: Boolean, peek: Boolean, compact: Boolean) {
-    val me = m.who == Who.Me
+    val me = m.mine
     val big = 16.dp
     val small = 6.dp
     val shape = if (me) RoundedCornerShape(big, if (first) big else small, if (last) big else small, big)
@@ -574,8 +584,8 @@ private fun Bubble(m: Msg, first: Boolean, last: Boolean, peek: Boolean, compact
     val pressed by src.collectIsPressedAsState()
     val focused by src.collectIsFocusedAsState()
     val blur = if (peek && !(hovered || pressed || focused)) 6.dp else 0.dp
-    val rise = remember(m.id) { Animatable(if (m.isNew) 0f else 1f) }
-    LaunchedEffect(m.id) {
+    val rise = remember(m.key) { Animatable(if (m.isNew) 0f else 1f) }
+    LaunchedEffect(m.key) {
         rise.animateTo(1f, tween(180, easing = EOut))
         m.isNew = false
     }
@@ -611,7 +621,7 @@ private fun Bubble(m: Msg, first: Boolean, last: Boolean, peek: Boolean, compact
                         Ic(
                             status.icon,
                             Modifier.semantics { contentDescription = status.label },
-                            size = 15.dp, tint = if (status == DeliveryStatus.Read) T.read else metaColor, weight = 2f,
+                            size = 15.dp, tint = if (status == DeliveryStatus.Delivered) T.read else metaColor, weight = 2f,
                         )
                     }
                 }
@@ -622,7 +632,7 @@ private fun Bubble(m: Msg, first: Boolean, last: Boolean, peek: Boolean, compact
 
 @Composable
 private fun ComposerBar(s: AppState, c: Contact, compact: Boolean) {
-    var draft by remember(c.id) { mutableStateOf(TextFieldValue("")) }
+    var draft by remember(c.name) { mutableStateOf(TextFieldValue("")) }
     val src = remember { MutableInteractionSource() }
     val focused by src.collectIsFocusedAsState()
     fun send(fromKeyboard: Boolean) {
@@ -638,7 +648,7 @@ private fun ComposerBar(s: AppState, c: Contact, compact: Boolean) {
             Modifier.widthIn(max = 784.dp).fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = if (compact) 28.dp else 12.dp),
             Arrangement.spacedBy(8.dp), Alignment.Bottom,
         ) {
-            IconBtn(IC.plus, "Attach", { s.toast("Files are encrypted before they leave") }, tip = "Attach", tipAbove = true)
+            IconBtn(IC.plus, "Attaching files isn't built yet", {}, tip = "Attaching files isn't built yet", tipAbove = true, enabled = false)
             BasicTextField(
                 draft, { draft = it },
                 Modifier.weight(1f).heightIn(min = 48.dp, max = 160.dp).clip(shape).background(T.hover)
