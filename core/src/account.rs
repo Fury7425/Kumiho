@@ -39,6 +39,8 @@ pub enum Error {
     EmptyPassphrase,
     #[error("message too long")]
     TooLong,
+    #[error("safety number: {0}")]
+    SafetyNumber(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -438,8 +440,9 @@ impl Account {
         let remote = self.remote(name)?;
         let their_key = block_on(self.sql.get_identity(&remote))?.ok_or_else(|| Error::UnknownContact(name.into()))?;
         let ours = self.sql.pair()?;
-        let fp = Fingerprint::new(2, 5200, self.local.name().as_bytes(), ours.identity_key(), remote.name().as_bytes(), &their_key)?;
-        let digits = fp.display_string()?;
+        let fp = Fingerprint::new(2, 5200, self.local.name().as_bytes(), ours.identity_key(), remote.name().as_bytes(), &their_key)
+            .map_err(|e| Error::SafetyNumber(e.to_string()))?;
+        let digits = fp.display_string().map_err(|e| Error::SafetyNumber(e.to_string()))?;
         Ok(digits.as_bytes().chunks(5).map(|c| String::from_utf8_lossy(c).into_owned()).collect())
     }
 

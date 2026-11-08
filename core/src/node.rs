@@ -72,7 +72,7 @@ pub struct PairingCode {
 }
 
 /// Called from the worker thread; implementations must hand off to their own UI thread.
-#[uniffi::export(foreign)]
+#[uniffi::export(with_foreign)]
 pub trait Events: Send + Sync {
     fn message(&self, m: MessageInfo);
     fn status(&self, contact: String, seq: u64, status: String);
