@@ -9,6 +9,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import kumiho.res.*
+import org.jetbrains.compose.resources.Font
 
 /** Tokens from the "Kumiho UI mockup" canvas: graphite neutrals, one selection fill, vermilion only on the seal and orb. */
 class Tokens(
@@ -58,6 +60,33 @@ val LocalT = staticCompositionLocalOf { Dark }
 val T: Tokens
     @Composable @ReadOnlyComposable get() = LocalT.current
 
+/** The OS asked for less motion: movement goes, fades stay, the orb shows one still frame. */
+val LocalReduce = staticCompositionLocalOf { false }
+
+class Fonts(val sans: FontFamily, val serif: FontFamily)
+
+val LocalFonts = staticCompositionLocalOf { Fonts(FontFamily.Default, FontFamily.Serif) }
+
+@Composable
+fun loadFonts() = Fonts(
+    FontFamily(
+        Font(Res.font.pretendard_light, FontWeight.Light),
+        Font(Res.font.pretendard_regular, FontWeight.Normal),
+        Font(Res.font.pretendard_medium, FontWeight.Medium),
+        Font(Res.font.pretendard_semibold, FontWeight.SemiBold),
+    ),
+    FontFamily(Font(Res.font.hahmlet, FontWeight.Normal)),
+)
+
+/** Swaps the generic families in [Ty] for the bundled fonts; monospace stays the system's. */
+@Composable
+@ReadOnlyComposable
+fun TextStyle.themed(): TextStyle = when (fontFamily) {
+    FontFamily.Monospace -> this
+    FontFamily.Serif -> copy(fontFamily = LocalFonts.current.serif)
+    else -> copy(fontFamily = LocalFonts.current.sans)
+}
+
 val EOut = CubicBezierEasing(.23f, 1f, .32f, 1f)
 val EIo = CubicBezierEasing(.77f, 0f, .175f, 1f)
 val EDrawer = CubicBezierEasing(.32f, .72f, 0f, 1f)
@@ -67,7 +96,6 @@ private fun ts(size: Int, line: Int, weight: Int = 400, spacing: Double = 0.0) =
     letterSpacing = spacing.sp, fontFeatureSettings = "tnum",
 )
 
-// ponytail: system fonts for now; bundle Pretendard and Hahmlet as compose resources to match the canvas exactly.
 object Ty {
     val micro = ts(12, 16)
     val microMed = ts(12, 16, 500)

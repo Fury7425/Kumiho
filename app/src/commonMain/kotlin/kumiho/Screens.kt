@@ -109,7 +109,7 @@ private fun GlyphTab(s: AppState) {
 
 @Composable
 private fun ScanTab(s: AppState) {
-    val orbScale by animateFloatAsState(if (s.scanning) .6f else 1f, tween(600, easing = EIo))
+    val orbScale by animateFloatAsState(if (s.scanning && !LocalReduce.current) .6f else 1f, tween(600, easing = EIo))
     val orbAlpha by animateFloatAsState(if (s.scanning) 0f else .72f, tween(500))
     val lock by animateFloatAsState(if (s.scanning) 1f else 0f, tween(300, 300))
     CompositionLocalProvider(LocalT provides Dark) {
@@ -453,7 +453,7 @@ private fun HoldToWipe(onWipe: () -> Unit) {
         if (holding) { delay(2000); holding = false; onWipe() }
     }
     val progress by animateFloatAsState(if (holding) 1f else 0f, tween(if (holding) 2000 else 200, easing = if (holding) LinearEasing else EOut))
-    val press by animateFloatAsState(if (holding) .98f else 1f, tween(160, easing = EOut))
+    val press by animateFloatAsState(if (holding && !LocalReduce.current) .98f else 1f, tween(160, easing = EOut))
     val src = remember { MutableInteractionSource() }
     val focused by src.collectIsFocusedAsState()
     Box(

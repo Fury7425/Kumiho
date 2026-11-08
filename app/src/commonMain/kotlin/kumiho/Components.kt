@@ -11,6 +11,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,6 +21,7 @@ import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
@@ -61,6 +63,20 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.time.TimeMark
 
+/** False below Android 12, where Modifier.blur does nothing. */
+expect val blurSupported: Boolean
+
+/** The Android back button; nothing on desktop. */
+@Composable
+expect fun SystemBack(enabled: Boolean, onBack: () -> Unit)
+
+/** A thin desktop scrollbar; nothing on touch screens. */
+@Composable
+expect fun VScroll(state: ScrollState, modifier: Modifier)
+
+@Composable
+expect fun VScroll(state: LazyListState, modifier: Modifier)
+
 @Composable
 fun Txt(
     text: String,
@@ -69,7 +85,7 @@ fun Txt(
     modifier: Modifier = Modifier,
     maxLines: Int = Int.MAX_VALUE,
     align: TextAlign = TextAlign.Unspecified,
-) = BasicText(text, modifier, style.copy(color = color, textAlign = align), overflow = TextOverflow.Ellipsis, maxLines = maxLines)
+) = BasicText(text, modifier, style.themed().copy(color = color, textAlign = align), overflow = TextOverflow.Ellipsis, maxLines = maxLines)
 
 private val paths = HashMap<String, Path>()
 private fun parse(d: String) = paths.getOrPut(d) { PathParser().parsePathString(d).toPath() }
@@ -120,7 +136,7 @@ fun Tap(
     val pressed by src.collectIsPressedAsState()
     val hovered by src.collectIsHoveredAsState()
     val focused by src.collectIsFocusedAsState()
-    val s by animateFloatAsState(if (pressed && enabled) scale else 1f, tween(if (pressed) 90 else 160, easing = EOut))
+    val s by animateFloatAsState(if (pressed && enabled && !LocalReduce.current) scale else 1f, tween(if (pressed) 90 else 160, easing = EOut))
     val fill by animateColorAsState(if ((pressed || hovered) && enabled) hover else bg, tween(150))
     val ring = T.textStrong
     Row(
@@ -222,7 +238,7 @@ fun IconBtn(
 /** One thumb that slides to the choice, 240 ms. */
 @Composable
 fun Seg(options: List<String>, selected: Int, onPick: (Int) -> Unit, modifier: Modifier = Modifier, full: Boolean = false) {
-    val x by animateFloatAsState(selected.toFloat(), tween(240, easing = EIo))
+    val x by animateFloatAsState(selected.toFloat(), tween(if (LocalReduce.current) 0 else 240, easing = EIo))
     val inner = RoundedCornerShape(8.dp)
     Box(modifier.then(if (full) Modifier.fillMaxWidth() else Modifier.width(IntrinsicSize.Max)).clip(RoundedCornerShape(12.dp)).background(T.hover).padding(4.dp)) {
         Box(Modifier.matchParentSize()) {
@@ -338,7 +354,7 @@ fun Field(
     val focused by src.collectIsFocusedAsState()
     val shape = RoundedCornerShape(12.dp)
     val edge = if (invalid) T.danger else if (focused) T.textStrong else Color.Transparent
-    val style = (if (mono) Ty.body.copy(fontFamily = Ty.mono.fontFamily) else Ty.body).copy(color = T.textStrong)
+    val style = (if (mono) Ty.body.copy(fontFamily = Ty.mono.fontFamily) else Ty.body).themed().copy(color = T.textStrong)
     BasicTextField(
         value, onChange,
         modifier.fillMaxWidth().height(height).clip(shape).background(T.hover).border(1.dp, edge, shape).semantics { contentDescription = label },
@@ -397,13 +413,15 @@ fun Modifier.fadeEdges() = graphicsLayer { compositingStrategy = CompositingStra
 @Composable
 fun Modifier.enter(key: Any?, dy: Dp = 4.dp, ms: Int = 200, delayMs: Int = 0): Modifier {
     val a = remember(key) { Animatable(0f) }
+    val rise = if (LocalReduce.current) 0.dp else dy
     LaunchedEffect(key) { a.animateTo(1f, tween(ms, delayMs, EOut)) }
-    return graphicsLayer { alpha = a.value; translationY = (1 - a.value) * dy.toPx() }
+    return graphicsLayer { alpha = a.value; translationY = (1 - a.value) * rise.toPx() }
 }
 
 /** Phone screen push, slides in from the right. */
 @Composable
 fun Modifier.pushIn(key: Any?): Modifier {
+    if (LocalReduce.current) return enter(key, 0.dp, 150)
     val a = remember(key) { Animatable(0f) }
     LaunchedEffect(key) { a.animateTo(1f, tween(320, easing = EDrawer)) }
     return graphicsLayer { translationX = (1 - a.value) * size.width }
@@ -411,12 +429,16 @@ fun Modifier.pushIn(key: Any?): Modifier {
 
 @Composable
 fun Page(content: @Composable ColumnScope.() -> Unit) {
-    Box(Modifier.fillMaxSize().fadeEdges().verticalScroll(rememberScrollState()), Alignment.TopCenter) {
-        Column(
-            Modifier.widthIn(max = 560.dp).fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 64.dp),
-            verticalArrangement = Arrangement.spacedBy(32.dp),
-            content = content,
-        )
+    val scroll = rememberScrollState()
+    Box(Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxSize().fadeEdges().verticalScroll(scroll), Alignment.TopCenter) {
+            Column(
+                Modifier.widthIn(max = 560.dp).fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 64.dp),
+                verticalArrangement = Arrangement.spacedBy(32.dp),
+                content = content,
+            )
+        }
+        VScroll(scroll, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
     }
 }
 
@@ -518,7 +540,7 @@ private fun orbModel(seed: Int): List<OrbPoint> {
 fun Orb(seed: Int, size: Dp, modifier: Modifier = Modifier, paused: Boolean = false, label: String? = null) {
     val parts = remember(seed) { orbModel(seed) }
     var time by remember { mutableLongStateOf(0L) }
-    if (!paused) LaunchedEffect(Unit) { while (true) withFrameMillis { time = it } }
+    if (!paused && !LocalReduce.current) LaunchedEffect(Unit) { while (true) withFrameMillis { time = it } }
     val colors = listOf(T.orbA, T.orbB, T.orbC)
     val dark = T.dark
     Canvas(modifier.size(size).then(if (label != null) Modifier.semantics { contentDescription = label } else Modifier)) {
@@ -558,6 +580,8 @@ fun Orb(seed: Int, size: Dp, modifier: Modifier = Modifier, paused: Boolean = fa
 /** Blur that lifts with an animated radius, used by Peek and the expired Glyph. */
 @Composable
 fun Modifier.softBlur(radius: Dp, ms: Int = 150): Modifier {
+    // No blur on this device: hide outright rather than leak what Peek protects.
+    if (!blurSupported) return graphicsLayer { alpha = if (radius > 0.dp) .05f else 1f }
     val r by animateDpAsState(radius, tween(ms))
     return blur(r, androidx.compose.ui.draw.BlurredEdgeTreatment.Unbounded)
 }

@@ -208,15 +208,16 @@ class AppState(val core: Core, private val scope: CoroutineScope) {
 }
 
 @Composable
-fun App(captureBlocked: Boolean = false) {
+fun App(captureBlocked: Boolean = false, reduceMotion: Boolean = false) {
     val scope = rememberCoroutineScope()
     val s = remember { AppState(Core(scope), scope) }
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { focus.requestFocus() }
-    CompositionLocalProvider(LocalT provides (if (s.dark) Dark else Light)) {
+    SystemBack(enabled = !s.onboard && s.route != Route.Empty) { s.back() }
+    CompositionLocalProvider(LocalT provides (if (s.dark) Dark else Light), LocalReduce provides reduceMotion, LocalFonts provides loadFonts()) {
         CompositionLocalProvider(LocalTextSelectionColors provides TextSelectionColors(T.textStrong, T.textStrong.copy(alpha = .3f))) {
             BoxWithConstraints(
-                Modifier.fillMaxSize().background(T.bg)
+                Modifier.fillMaxSize().background(T.bg).safeDrawingPadding()
                     .onPreviewKeyEvent { e ->
                         if (e.type == KeyEventType.KeyDown && e.key == Key.Escape && !s.onboard && s.route != Route.Empty) { s.back(); true } else false
                     }
@@ -283,8 +284,14 @@ private fun Sidebar(s: AppState, compact: Boolean, modifier: Modifier) {
                         Btn("Show all chats", { s.query = ""; s.filter = Filter.All }, small = true)
                     }
                 }
-                else -> LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = if (compact) 104.dp else 8.dp)) {
-                    items(rows, key = { it.id }) { c -> ChatRow(s, c, current = !compact && s.route == Route.Chat && s.cid == c.id) }
+                else -> {
+                    val listState = rememberLazyListState()
+                    Box(Modifier.weight(1f).fillMaxWidth()) {
+                        LazyColumn(Modifier.fillMaxSize(), listState, PaddingValues(start = 8.dp, end = 8.dp, bottom = if (compact) 104.dp else 8.dp)) {
+                            items(rows, key = { it.id }) { c -> ChatRow(s, c, current = !compact && s.route == Route.Chat && s.cid == c.id) }
+                        }
+                        VScroll(listState, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
+                    }
                 }
             }
             if (!compact) {
@@ -353,7 +360,7 @@ private fun ChatRow(s: AppState, c: Contact, current: Boolean) {
                 BasicText(
                     preview,
                     Modifier.weight(1f).softBlur(if (c.peek) 4.dp else 0.dp),
-                    Ty.body.copy(color = T.muted),
+                    Ty.body.themed().copy(color = T.muted),
                     overflow = TextOverflow.Ellipsis, maxLines = 1,
                 )
                 if (c.unread > 0) {
@@ -475,7 +482,7 @@ private fun NymBanner(s: AppState, c: Contact) {
     ) {
         Ic(IC.alert, tint = T.warning)
         Column(Modifier.weight(1f), Arrangement.spacedBy(6.dp)) {
-            BasicText(body, style = Ty.body.copy(color = T.text))
+            BasicText(body, style = Ty.body.themed().copy(color = T.text))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 // Keep waiting is primary: the brightest button shouldn't lower someone's privacy.
                 Btn("Keep waiting", { s.toast("They'll send once Nym is back") }, kind = Kind.Primary, small = true)
@@ -505,8 +512,9 @@ private fun Timeline(s: AppState, c: Contact, compact: Boolean, modifier: Modifi
     val total = (if (c.peek) 1 else 0) + (if (c.shield.isNotEmpty()) 1 else 0) + (if (real > 0) 1 else 0) + c.msgs.size + (if (real == 0) 1 else 0)
     LaunchedEffect(c.id, c.msgs.size) { list.scrollToItem(total - 1) }
     val column = Modifier.widthIn(max = 728.dp).fillMaxWidth()
+    Box(modifier.fillMaxWidth()) {
     LazyColumn(
-        modifier.fillMaxWidth().fadeEdges(),
+        Modifier.fillMaxSize().fadeEdges(),
         state = list,
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 12.dp),
         verticalArrangement = Arrangement.Bottom,
@@ -550,6 +558,8 @@ private fun Timeline(s: AppState, c: Contact, compact: Boolean, modifier: Modifi
             }
         }
     }
+    VScroll(list, Modifier.align(Alignment.CenterEnd).fillMaxHeight())
+    }
 }
 
 @Composable
@@ -569,6 +579,7 @@ private fun Bubble(m: Msg, first: Boolean, last: Boolean, peek: Boolean, compact
         rise.animateTo(1f, tween(180, easing = EOut))
         m.isNew = false
     }
+    val riseBy = if (LocalReduce.current) 0.dp else 6.dp
     val metaColor = if (me) T.mineMeta else T.faint
     // Transparent copy of the time reserves room so the real one tucks into the last line of text.
     val text = buildAnnotatedString {
@@ -582,7 +593,7 @@ private fun Bubble(m: Msg, first: Boolean, last: Boolean, peek: Boolean, compact
         Box(Modifier.fillMaxWidth(if (compact) .8f else .76f).widthIn(max = 520.dp), align) {
             Box(
                 Modifier
-                    .graphicsLayer { alpha = rise.value; translationY = (1 - rise.value) * 6.dp.toPx() }
+                    .graphicsLayer { alpha = rise.value; translationY = (1 - rise.value) * riseBy.toPx() }
                     .then(if (peek) Modifier.hoverable(src).clickable(src, null) {} else Modifier)
                     .softBlur(blur)
                     .clip(shape)
@@ -590,7 +601,7 @@ private fun Bubble(m: Msg, first: Boolean, last: Boolean, peek: Boolean, compact
                     .then(if (me) Modifier else Modifier.border(1.dp, T.border, shape))
                     .padding(start = 12.dp, end = 10.dp, top = 8.dp, bottom = 8.dp),
             ) {
-                BasicText(text, style = Ty.body.copy(color = if (me) T.onBrand else T.textStrong))
+                BasicText(text, style = Ty.body.themed().copy(color = if (me) T.onBrand else T.textStrong))
                 Row(
                     Modifier.align(Alignment.BottomEnd).offset(x = 2.dp, y = 2.dp),
                     Arrangement.spacedBy(3.dp), Alignment.CenterVertically,
@@ -637,7 +648,7 @@ private fun ComposerBar(s: AppState, c: Contact, compact: Boolean) {
                         // composition != null: mid-syllable in a Korean IME, so Enter must not send yet.
                         if (e.type == KeyEventType.KeyDown && e.key == Key.Enter && !e.isShiftPressed && draft.composition == null) { send(true); true } else false
                     },
-                textStyle = Ty.body.copy(color = T.textStrong),
+                textStyle = Ty.body.themed().copy(color = T.textStrong),
                 interactionSource = src,
                 cursorBrush = SolidColor(T.textStrong),
                 decorationBox = { inner ->
@@ -669,8 +680,9 @@ private fun ToastView(t: Toast) {
     val a = remember { Animatable(0f) }
     LaunchedEffect(t.out) { a.animateTo(if (t.out) 0f else 1f, tween(if (t.out) 160 else 240, easing = EOut)) }
     val shape = RoundedCornerShape(16.dp)
+    val riseBy = if (LocalReduce.current) 0.dp else 8.dp
     Box(
-        Modifier.graphicsLayer { alpha = a.value; translationY = (1 - a.value) * 8.dp.toPx() }
+        Modifier.graphicsLayer { alpha = a.value; translationY = (1 - a.value) * riseBy.toPx() }
             .shadow(12.dp, shape).background(T.toast, shape).heightIn(min = 52.dp).padding(horizontal = 16.dp, vertical = 6.dp),
         Alignment.Center,
     ) { Txt(t.text, Ty.body, T.onToast, maxLines = 1) }
