@@ -1,3 +1,8 @@
 [workspace]
 members = ["core", "cli"]
 resolver = "2"
+
+# Debug symbols made the Android library 284 MB and the APK 298 MB.
+[profile.dev]
+debug = false
+strip = "debuginfo"
