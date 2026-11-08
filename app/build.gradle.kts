@@ -14,11 +14,17 @@ kotlin {
         commonMain.dependencies {
             implementation(compose.runtime)
             implementation(compose.foundation)
-            implementation(compose.material3)
+            implementation(compose.ui)
         }
         val desktopMain by getting {
             dependencies {
                 implementation(compose.desktop.currentOs)
+                implementation("net.java.dev.jna:jna:5.17.0") // capture shield: user32.SetWindowDisplayAffinity
+            }
+        }
+        val desktopTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
             }
         }
     }

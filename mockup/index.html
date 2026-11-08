@@ -7,34 +7,36 @@
 <meta name="description" content="Clickable UI mockup for Kumiho, a peer-to-peer, post-quantum messenger with no server to trust.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Hahmlet:wght@400;500&display=swap" rel="stylesheet">
 <style>
 /* ---------- Tokens ---------- */
 :root {
   color-scheme: light;
-  --bg: oklch(0.985 0.003 285);
-  --surface: oklch(1 0 0);
-  --surface-2: oklch(0.958 0.006 285);
-  --surface-3: oklch(0.93 0.008 285);
-  --line: oklch(0.895 0.008 285);
-  --ink: oklch(0.22 0.02 285);
-  --muted: oklch(0.47 0.015 285);
-  --fox: oklch(0.55 0.175 42);
+  /* Hanji paper, meok ink, one vermilion seal accent (jeok). Modes borrow obangsaek: hwang, cheong. */
+  --bg: oklch(0.975 0.005 85);
+  --surface: oklch(0.992 0.003 85);
+  --surface-2: oklch(0.95 0.006 85);
+  --surface-3: oklch(0.91 0.008 85);
+  --line: oklch(0.895 0.008 85);
+  --ink: oklch(0.21 0.012 260);
+  --muted: oklch(0.48 0.012 260);
+  --fox: oklch(0.57 0.19 33);
   --fox-ink: oklch(0.99 0.01 60);
-  --fox-soft: oklch(0.55 0.175 42 / 0.12);
-  --fast: oklch(0.52 0.12 85);
-  --private: oklch(0.48 0.1 180);
-  --untraceable: oklch(0.5 0.17 300);
-  --danger: oklch(0.55 0.2 25);
-  --ok: oklch(0.52 0.13 150);
-  --focus: oklch(0.6 0.17 42);
-  --bubble-me: oklch(0.55 0.175 42);
-  --bubble-me-ink: oklch(0.99 0.01 60);
-  --bubble-them: oklch(0.945 0.007 285);
+  --fox-soft: oklch(0.57 0.19 33 / 0.12);
+  --fast: oklch(0.5 0.11 80);
+  --private: oklch(0.47 0.11 245);
+  --untraceable: oklch(0.47 0.15 300);
+  --danger: oklch(0.52 0.2 18);
+  --ok: oklch(0.5 0.12 155);
+  --focus: oklch(0.6 0.18 33);
+  --bubble-me: oklch(0.21 0.012 260);
+  --bubble-me-ink: oklch(0.97 0.005 85);
+  --bubble-them: oklch(0.992 0.003 85);
 
   --font: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   --mono: "Geist Mono", ui-monospace, "SF Mono", Consolas, monospace;
-  --r-sm: 8px; --r-md: 12px; --r-lg: 18px;
+  --serif-kr: "Hahmlet", "Nanum Myeongjo", "AppleMyungjo", "Batang", serif;
+  --r-sm: 8px; --r-md: 10px; --r-lg: 14px;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   --z-sticky: 10; --z-pane: 20; --z-overlay: 30; --z-toast: 40;
@@ -42,46 +44,48 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg: oklch(0.165 0.014 285);
-    --surface: oklch(0.195 0.016 285);
-    --surface-2: oklch(0.235 0.018 285);
-    --surface-3: oklch(0.28 0.02 285);
-    --line: oklch(0.3 0.018 285);
-    --ink: oklch(0.95 0.006 285);
-    --muted: oklch(0.72 0.014 285);
-    --fox: oklch(0.75 0.155 50);
-    --fox-ink: oklch(0.2 0.04 45);
-    --fox-soft: oklch(0.75 0.155 50 / 0.14);
-    --fast: oklch(0.83 0.13 92);
-    --private: oklch(0.78 0.11 178);
-    --untraceable: oklch(0.76 0.13 300);
-    --danger: oklch(0.7 0.18 25);
-    --ok: oklch(0.76 0.14 150);
-    --bubble-me: oklch(0.75 0.155 50);
-    --bubble-me-ink: oklch(0.2 0.04 45);
-    --bubble-them: oklch(0.255 0.02 285);
+    --bg: oklch(0.155 0.006 260);
+    --surface: oklch(0.18 0.007 260);
+    --surface-2: oklch(0.215 0.008 260);
+    --surface-3: oklch(0.265 0.01 260);
+    --line: oklch(0.275 0.008 260);
+    --ink: oklch(0.94 0.006 85);
+    --muted: oklch(0.7 0.01 260);
+    --fox: oklch(0.7 0.16 38);
+    --fox-ink: oklch(0.18 0.03 40);
+    --fox-soft: oklch(0.7 0.16 38 / 0.16);
+    --fast: oklch(0.84 0.12 88);
+    --private: oklch(0.76 0.1 240);
+    --untraceable: oklch(0.76 0.12 300);
+    --danger: oklch(0.7 0.18 22);
+    --ok: oklch(0.76 0.13 155);
+    --focus: oklch(0.72 0.16 38);
+    --bubble-me: oklch(0.92 0.008 85);
+    --bubble-me-ink: oklch(0.18 0.01 260);
+    --bubble-them: oklch(0.2 0.008 260);
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: oklch(0.165 0.014 285);
-  --surface: oklch(0.195 0.016 285);
-  --surface-2: oklch(0.235 0.018 285);
-  --surface-3: oklch(0.28 0.02 285);
-  --line: oklch(0.3 0.018 285);
-  --ink: oklch(0.95 0.006 285);
-  --muted: oklch(0.72 0.014 285);
-  --fox: oklch(0.75 0.155 50);
-  --fox-ink: oklch(0.2 0.04 45);
-  --fox-soft: oklch(0.75 0.155 50 / 0.14);
-  --fast: oklch(0.83 0.13 92);
-  --private: oklch(0.78 0.11 178);
-  --untraceable: oklch(0.76 0.13 300);
-  --danger: oklch(0.7 0.18 25);
-  --ok: oklch(0.76 0.14 150);
-  --bubble-me: oklch(0.75 0.155 50);
-  --bubble-me-ink: oklch(0.2 0.04 45);
-  --bubble-them: oklch(0.255 0.02 285);
+  --bg: oklch(0.155 0.006 260);
+  --surface: oklch(0.18 0.007 260);
+  --surface-2: oklch(0.215 0.008 260);
+  --surface-3: oklch(0.265 0.01 260);
+  --line: oklch(0.275 0.008 260);
+  --ink: oklch(0.94 0.006 85);
+  --muted: oklch(0.7 0.01 260);
+  --fox: oklch(0.7 0.16 38);
+  --fox-ink: oklch(0.18 0.03 40);
+  --fox-soft: oklch(0.7 0.16 38 / 0.16);
+  --fast: oklch(0.84 0.12 88);
+  --private: oklch(0.76 0.1 240);
+  --untraceable: oklch(0.76 0.12 300);
+  --danger: oklch(0.7 0.18 22);
+  --ok: oklch(0.76 0.13 155);
+  --focus: oklch(0.72 0.16 38);
+  --bubble-me: oklch(0.92 0.008 85);
+  --bubble-me-ink: oklch(0.18 0.01 260);
+  --bubble-them: oklch(0.2 0.008 260);
 }
 
 /* ---------- Base ---------- */
@@ -101,6 +105,19 @@ button, input, textarea { font: inherit; color: inherit; }
 svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 .mono { font-family: var(--mono); font-feature-settings: "zero"; }
 .muted { color: var(--muted); }
+/* Hangul accents: a quiet myeongjo voice next to the geometric UI */
+.kr { font-family: var(--serif-kr); font-weight: 400; color: var(--muted); letter-spacing: 0; text-transform: none; }
+.eyebrow { font: 500 11px/1.2 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+/* Changsal: a ttisal window lattice, faded from the centre. Reads as a tech grid too. */
+.lattice { isolation: isolate; }
+.lattice::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: 0.55;
+  background:
+    repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 22px),
+    repeating-linear-gradient(0deg, var(--line) 0 1px, transparent 1px 66px);
+  -webkit-mask-image: radial-gradient(closest-side, black, transparent);
+  mask-image: radial-gradient(closest-side, black, transparent);
+}
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
 
@@ -113,7 +130,7 @@ svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor;
   transition: transform 160ms var(--ease-out), background-color 150ms ease, border-color 150ms ease;
 }
 .btn:active:not(:disabled) { transform: scale(0.97); }
-.btn--primary { background: var(--fox); border-color: transparent; color: var(--fox-ink); }
+.btn--primary { background: var(--ink); border-color: transparent; color: var(--bg); }
 .btn--ghost { background: transparent; border-color: transparent; }
 .btn--danger { color: var(--danger); }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -127,24 +144,29 @@ svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor;
 .icon-btn:disabled { color: var(--muted); opacity: 0.5; cursor: not-allowed; }
 @media (hover: hover) and (pointer: fine) {
   .btn:hover:not(:disabled) { background: var(--surface-2); }
-  .btn--primary:hover:not(:disabled) { background: color-mix(in oklch, var(--fox) 88%, var(--ink)); }
+  .btn--primary:hover:not(:disabled) { background: color-mix(in oklch, var(--ink) 86%, var(--bg)); }
   .icon-btn:hover:not(:disabled) { background: var(--surface-2); }
 }
 
 /* ---------- Badges ---------- */
 .mode {
   --c: var(--untraceable);
-  display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px;
-  border-radius: 999px; font-size: 12px; font-weight: 500; white-space: nowrap;
-  color: var(--c); background: color-mix(in oklch, var(--c) 14%, transparent);
+  display: inline-flex; align-items: center; gap: 6px; height: 20px; padding: 0 7px;
+  border-radius: 4px; font: 500 10.5px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap;
+  color: var(--c); box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--c) 35%, transparent);
 }
-.mode::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.mode::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
 .mode--fast { --c: var(--fast); }
 .mode--private { --c: var(--private); }
 .mode--untraceable { --c: var(--untraceable); }
 .vbadge { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); }
 .vbadge svg.i { width: 14px; height: 14px; }
-.vbadge--ok { color: var(--ok); }
+.vbadge--ok { color: var(--ink); }
+/* Dojang: a verified contact carries a tiny red seal, the Korean mark of authenticity */
+.seal {
+  display: inline-grid; place-items: center; width: 14px; height: 14px; border-radius: 3px;
+  border: 1.25px solid var(--fox); color: var(--fox); font: 500 9px/1 var(--serif-kr); transform: rotate(-4deg);
+}
 
 /* ---------- App shell ---------- */
 .app { display: grid; grid-template-columns: 340px 1fr; height: 100dvh; position: relative; }
@@ -152,39 +174,45 @@ svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor;
 .sidebar__head { display: flex; align-items: center; gap: 4px; padding: 14px 10px 10px 18px; }
 .wordmark { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 1.05rem; letter-spacing: -0.01em; margin-right: auto; }
 .wordmark svg { width: 22px; height: 22px; color: var(--fox); }
+.wordmark .kr { font-size: 12px; margin-left: 2px; translate: 0 1px; }
 .chatlist { list-style: none; margin: 0; padding: 4px 8px; overflow-y: auto; flex: 1; }
 .chatrow {
   display: grid; grid-template-columns: 44px 1fr auto; gap: 2px 12px; align-items: center;
   width: 100%; padding: 10px; border-radius: var(--r-md); border: 0; background: transparent;
-  text-align: left; cursor: pointer; transition: background-color 120ms ease;
+  text-align: left; cursor: pointer; transition: background-color 120ms ease, transform 160ms var(--ease-out);
 }
+.chatrow:active { transform: scale(0.985); }
 .chatrow[aria-current="true"] { background: var(--surface-2); }
 @media (hover: hover) and (pointer: fine) { .chatrow:hover { background: var(--surface-2); } }
 .avatar {
   grid-row: span 2; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center;
-  font-weight: 600; background: oklch(0.88 0.06 var(--h)); color: oklch(0.3 0.08 var(--h));
+  font-weight: 500; background: oklch(0.92 0.03 var(--h)); color: oklch(0.32 0.05 var(--h));
+  box-shadow: inset 0 0 0 1px oklch(0.5 0.04 var(--h) / 0.18);
 }
-:root[data-theme="dark"] .avatar { background: oklch(0.36 0.07 var(--h)); color: oklch(0.92 0.05 var(--h)); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .avatar { background: oklch(0.36 0.07 var(--h)); color: oklch(0.92 0.05 var(--h)); } }
+:root[data-theme="dark"] .avatar { background: oklch(0.27 0.035 var(--h)); color: oklch(0.9 0.04 var(--h)); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .avatar { background: oklch(0.27 0.035 var(--h)); color: oklch(0.9 0.04 var(--h)); } }
 .avatar--lg { width: 72px; height: 72px; font-size: 1.6rem; }
 .chatrow__name { font-weight: 600; display: flex; align-items: center; gap: 8px; min-width: 0; }
-.chatrow__time { font-size: 12px; color: var(--muted); }
+.chatrow__time { font: 400 11px/1 var(--mono); color: var(--muted); }
 .chatrow__preview { color: var(--muted); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .chatrow__preview.is-peek { filter: blur(4px); }
 .unread { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--fox); color: var(--fox-ink); font-size: 12px; font-weight: 600; display: grid; place-items: center; }
 .netstrip {
   display: flex; align-items: center; gap: 10px; margin: 8px; padding: 10px 12px; border-radius: var(--r-md);
-  background: var(--surface-2); border: 0; font-size: 13px; color: var(--muted); cursor: pointer; text-align: left;
+  background: transparent; border: 1px solid var(--line); font: 400 11.5px/1.4 var(--mono); color: var(--muted); cursor: pointer; text-align: left;
+  transition: transform 160ms var(--ease-out), background-color 150ms ease;
 }
+.netstrip:active { transform: scale(0.985); }
+@media (hover: hover) and (pointer: fine) { .netstrip:hover { background: var(--surface-2); } }
 .netstrip strong { color: var(--ink); font-weight: 500; }
-.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex: none; }
-.dot--down { background: var(--danger); }
-.dot--idle { background: var(--muted); }
+.dot { width: 7px; height: 7px; border-radius: 50%; color: var(--ok); background: currentColor; flex: none; box-shadow: 0 0 8px currentColor; }
+.dot--down { color: var(--danger); }
+.dot--idle { color: var(--muted); box-shadow: none; }
 
 .pane { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--bg); }
 .pane__head {
   display: flex; align-items: center; gap: 8px; min-height: 64px; padding: 10px 12px 10px 16px;
-  border-bottom: 1px solid var(--line); background: var(--surface); position: sticky; top: 0; z-index: var(--z-sticky);
+  border-bottom: 1px solid var(--line); background: var(--bg); position: sticky; top: 0; z-index: var(--z-sticky);
 }
 .pane__title { display: flex; flex-direction: column; min-width: 0; margin-right: auto; }
 .pane__title button { all: unset; cursor: pointer; display: flex; flex-direction: column; gap: 2px; border-radius: 6px; }
@@ -205,7 +233,9 @@ svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor;
 .banner__actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .banner__actions .btn { min-height: 34px; padding: 0 12px; font-size: 14px; }
 .timeline { display: flex; flex-direction: column; gap: 4px; padding: 20px 16px 12px; max-width: 760px; margin: 0 auto; width: 100%; }
-.day { align-self: center; font-size: 12px; color: var(--muted); margin: 8px 0; }
+.day { align-self: stretch; display: flex; align-items: center; gap: 12px; margin: 12px 0; }
+.day::before, .day::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.day .kr { font-size: 12px; }
 .notice {
   align-self: center; display: inline-flex; align-items: center; gap: 6px; max-width: 90%;
   font-size: 12.5px; color: var(--muted); text-align: center; margin: 8px 0; padding: 4px 10px; border-radius: 999px; background: var(--surface-2);
@@ -218,16 +248,19 @@ svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor;
 .msg--them { align-self: flex-start; }
 .msg + .msg--me, .msg + .msg--them { margin-top: 2px; }
 .bubble {
-  padding: 8px 12px; border-radius: 16px; background: var(--bubble-them); white-space: pre-wrap; overflow-wrap: anywhere;
+  padding: 8px 12px; border-radius: 14px; background: var(--bubble-them); white-space: pre-wrap; overflow-wrap: anywhere;
   transition: filter 150ms ease;
 }
-.msg--me .bubble { background: var(--bubble-me); color: var(--bubble-me-ink); border-bottom-right-radius: 6px; }
-.msg--them .bubble { border-bottom-left-radius: 6px; }
-.meta { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--muted); padding: 2px 4px; }
+.msg--me .bubble { background: var(--bubble-me); color: var(--bubble-me-ink); border-bottom-right-radius: 4px; }
+.msg--them .bubble { border-bottom-left-radius: 4px; box-shadow: inset 0 0 0 1px var(--line); }
+.meta { display: inline-flex; align-items: center; gap: 4px; font: 400 10.5px/1.4 var(--mono); color: var(--muted); padding: 2px 4px; }
 .meta svg.i { width: 14px; height: 14px; }
 .meta .s-read { color: var(--fox); }
-.msg.is-new { animation: msgIn 200ms var(--ease-out); }
-@keyframes msgIn { from { opacity: 0; transform: translateY(6px); } }
+/* Transition, not keyframes: rapid sends retarget instead of restarting */
+.msg.is-new {
+  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+  @starting-style { opacity: 0; transform: translateY(6px); }
+}
 .peek .bubble { filter: blur(7px); user-select: none; }
 .peek .msg:active .bubble, .peek .msg:focus-visible .bubble { filter: none; }
 @media (hover: hover) and (pointer: fine) { .peek .msg:hover .bubble { filter: none; } }
@@ -242,32 +275,35 @@ svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor;
 }
 .composer textarea:focus { border-color: var(--fox); }
 .composer textarea::placeholder { color: var(--muted); }
-.send { background: var(--fox); color: var(--fox-ink); border-radius: 50%; }
-@media (hover: hover) and (pointer: fine) { .icon-btn.send:hover:not(:disabled) { background: color-mix(in oklch, var(--fox) 88%, var(--ink)); } }
+.send { background: var(--ink); color: var(--bg); border-radius: 50%; }
+@media (hover: hover) and (pointer: fine) { .icon-btn.send:hover:not(:disabled) { background: color-mix(in oklch, var(--ink) 86%, var(--bg)); } }
 
 .tip { position: relative; }
 .tip[data-tip]::after {
   content: attr(data-tip); position: absolute; top: calc(100% + 6px); right: 0; z-index: var(--z-overlay);
-  padding: 6px 10px; border-radius: 8px; background: var(--ink); color: var(--bg); font-size: 12px; white-space: nowrap;
+  padding: 6px 9px; border-radius: 6px; background: var(--ink); color: var(--bg); font: 400 11px/1.2 var(--mono); white-space: nowrap;
   opacity: 0; transform: scale(0.97); transform-origin: top right; pointer-events: none;
   transition: opacity 125ms ease-out, transform 125ms var(--ease-out);
 }
 .tip[data-tip]:hover::after, .tip[data-tip]:focus-visible::after { opacity: 1; transform: none; transition-delay: 300ms; }
 
 /* ---------- Empty pane ---------- */
-.empty { flex: 1; display: grid; place-items: center; padding: 32px; text-align: center; }
+.empty { flex: 1; display: grid; place-items: center; padding: 32px; text-align: center; position: relative; }
 .empty__inner { display: flex; flex-direction: column; align-items: center; gap: 14px; max-width: 340px; }
-.empty__inner svg.fox { width: 48px; height: 48px; color: var(--fox); }
+.empty__inner svg.fox { width: 40px; height: 40px; color: var(--fox); }
+.empty__kr { font-size: 13px; margin-top: 10px; }
 
 /* ---------- Forms and sections ---------- */
 .section { display: flex; flex-direction: column; gap: 10px; }
+.section > h2 { font: 500 11px/1.2 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 .section > h2 + p { color: var(--muted); }
 .group { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
 .row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; min-height: 52px; }
 .row + .row { border-top: 1px solid var(--line); }
 .row__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .row__main small { color: var(--muted); font-size: 13px; }
-button.row { width: 100%; border: 0; background: transparent; text-align: left; cursor: pointer; }
+button.row { width: 100%; border: 0; background: transparent; text-align: left; cursor: pointer; transition: background-color 120ms ease; }
+button.row:active { background: var(--surface-3); }
 @media (hover: hover) and (pointer: fine) { button.row:hover { background: var(--surface-2); } }
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field label { font-weight: 500; font-size: 14px; }
@@ -286,17 +322,18 @@ button.row { width: 100%; border: 0; background: transparent; text-align: left; 
 .switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
 .switch span { position: absolute; inset: 0; border-radius: 999px; background: var(--surface-3); transition: background-color 150ms ease; pointer-events: none; }
 .switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: white; box-shadow: 0 1px 2px oklch(0 0 0 / 0.25); transition: transform 200ms var(--ease-out); }
-.switch input:checked + span { background: var(--fox); }
-.switch input:checked + span::after { transform: translateX(18px); }
+.switch input:checked + span { background: var(--ink); }
+.switch input:checked + span::after { transform: translateX(18px); background: var(--bg); }
 .switch input:focus-visible + span { outline: 2px solid var(--focus); outline-offset: 2px; }
 
 .seg { display: inline-flex; padding: 3px; border-radius: 11px; background: var(--surface-2); gap: 2px; }
-.seg button { border: 0; background: transparent; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; color: var(--muted); transition: background-color 150ms ease, color 150ms ease; }
+.seg button { border: 0; background: transparent; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; color: var(--muted); transition: background-color 150ms ease, color 150ms ease, transform 160ms var(--ease-out); }
+.seg button:active, .tabs button:active { transform: scale(0.97); }
 .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px oklch(0 0 0 / 0.08); }
 
 /* ---------- Add contact ---------- */
 .tabs { display: flex; gap: 2px; padding: 3px; border-radius: 12px; background: var(--surface-2); }
-.tabs button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 0; background: transparent; height: 36px; border-radius: 9px; cursor: pointer; color: var(--muted); font-weight: 500; }
+.tabs button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 0; background: transparent; height: 36px; border-radius: 9px; cursor: pointer; color: var(--muted); font-weight: 500; transition: background-color 150ms ease, color 150ms ease, transform 160ms var(--ease-out); }
 .tabs button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px oklch(0 0 0 / 0.08); }
 .glyphwrap { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 8px 0; }
 .glyph { width: min(300px, 78vw); aspect-ratio: 1; display: block; }
@@ -332,16 +369,18 @@ details[open] summary { margin-bottom: 8px; }
 .modeopt {
   position: relative; display: grid; grid-template-columns: 22px 1fr; gap: 4px 12px; padding: 14px 16px;
   border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--surface); cursor: pointer;
-  transition: border-color 150ms ease, background-color 150ms ease;
+  transition: border-color 150ms ease, background-color 150ms ease, transform 160ms var(--ease-out);
 }
+.modeopt:active { transform: scale(0.99); }
 .modeopt input { position: absolute; opacity: 0; }
 .modeopt .radio { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--line); margin-top: 2px; display: grid; place-items: center; transition: border-color 150ms ease; }
-.modeopt .radio::after { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--fox); transform: scale(0.5); opacity: 0; transition: transform 180ms var(--ease-out), opacity 120ms ease; }
-.modeopt:has(input:checked) { border-color: var(--fox); background: color-mix(in oklch, var(--fox) 5%, var(--surface)); }
-.modeopt:has(input:checked) .radio { border-color: var(--fox); }
+.modeopt .radio::after { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--ink); transform: scale(0.5); opacity: 0; transition: transform 180ms var(--ease-out), opacity 120ms ease; }
+.modeopt:has(input:checked) { border-color: var(--ink); }
+.modeopt:has(input:checked) .radio { border-color: var(--ink); }
 .modeopt:has(input:checked) .radio::after { transform: none; opacity: 1; }
 .modeopt:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
-.modeopt__title { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.modeopt__title { display: flex; align-items: baseline; gap: 8px; font-weight: 600; }
+.modeopt__title .kr { font-size: 13px; }
 .modeopt p { grid-column: 2; color: var(--muted); font-size: 14px; }
 .facts { grid-column: 2; display: flex; gap: 6px 14px; flex-wrap: wrap; font-size: 13px; margin-top: 4px; }
 .facts span { display: inline-flex; gap: 5px; align-items: center; }
@@ -376,6 +415,14 @@ details[open] summary { margin-bottom: 8px; }
 .onboard[hidden] { display: none; }
 .onboard.is-leaving { opacity: 0; }
 .onboard__inner { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 22px; }
+/* First run only, so it can afford a little delight: a short stagger */
+.onboard__inner > * { animation: rise 420ms var(--ease-out) both; }
+.onboard__inner > :nth-child(2) { animation-delay: 50ms; }
+.onboard__inner > :nth-child(3) { animation-delay: 100ms; }
+.onboard__inner > :nth-child(4) { animation-delay: 150ms; }
+.onboard__inner > :nth-child(5) { animation-delay: 200ms; }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+.ob-kr { text-align: center; font-size: 13px; margin-bottom: 4px; }
 .onboard .glyph { width: 168px; margin: 0 auto; }
 .onboard h1 { text-align: center; }
 .onboard__lead { text-align: center; color: var(--muted); }
@@ -409,7 +456,9 @@ details[open] summary { margin-bottom: 8px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; }
   .pane { transition: visibility 0s, opacity 150ms ease; }
-  .btn:active, .icon-btn:active, .hold:active { transform: none; }
+  .btn:active, .icon-btn:active, .hold:active, .chatrow:active, .netstrip:active, .seg button:active, .tabs button:active, .modeopt:active { transform: none; }
+  .msg.is-new { transition: opacity 150ms ease; }
+  .toast { transition: opacity 200ms ease; }
   .hold.is-holding .hold__fill { transition: clip-path 2s linear; }
 }
 </style>
@@ -451,10 +500,11 @@ details[open] summary { margin-bottom: 8px; }
   </defs>
 </svg>
 
-<section class="onboard" id="onboard" aria-labelledby="ob-title">
+<section class="onboard lattice" id="onboard" aria-labelledby="ob-title">
   <form class="onboard__inner" data-form="create">
     <canvas class="glyph" data-glyph="static" data-seed="7" aria-hidden="true"></canvas>
     <div>
+      <p class="kr ob-kr" lang="ko">구미호 · 아홉 꼬리 여우</p>
       <h1 id="ob-title">Kumiho</h1>
       <p class="onboard__lead" style="margin-top:6px">A messenger with no server you have to trust.</p>
     </div>
@@ -475,7 +525,7 @@ details[open] summary { margin-bottom: 8px; }
 <div class="app" id="app" data-view="list">
   <aside class="sidebar" aria-label="Chats">
     <div class="sidebar__head">
-      <div class="wordmark"><svg aria-hidden="true"><use href="#fox"/></svg>Kumiho</div>
+      <div class="wordmark"><svg aria-hidden="true"><use href="#fox"/></svg>Kumiho<span class="kr" lang="ko">구미호</span></div>
       <button class="icon-btn tip" data-action="go" data-route="add" aria-label="Add contact" data-tip="Add contact"><svg class="i"><use href="#plus"/></svg></button>
       <button class="icon-btn tip" data-action="go" data-route="settings" aria-label="Settings" data-tip="Settings"><svg class="i"><use href="#gear"/></svg></button>
     </div>
@@ -490,9 +540,9 @@ details[open] summary { margin-bottom: 8px; }
 <script>
 /* ===== Data ===== */
 const MODES = {
-  fast: { label: "Fast", rank: 0 },
-  private: { label: "Private", rank: 1 },
-  untraceable: { label: "Untraceable", rank: 2 },
+  fast: { label: "Fast", kr: "빠르게", rank: 0 },
+  private: { label: "Private", kr: "은밀하게", rank: 1 },
+  untraceable: { label: "Untraceable", kr: "흔적 없이", rank: 2 },
 };
 const stricter = (a, b) => (MODES[a].rank >= MODES[b].rank ? a : b);
 
@@ -549,7 +599,7 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "
 const icon = (id, cls = "") => `<svg class="i ${cls}" aria-hidden="true"><use href="#${id}"/></svg>`;
 const modeBadge = (m, extra = "") => `<span class="mode mode--${m}">${MODES[m].label}${extra}</span>`;
 const vBadge = (c) => c.verified
-  ? `<span class="vbadge vbadge--ok">${icon("shieldcheck")}Verified</span>`
+  ? `<span class="vbadge vbadge--ok"><span class="seal" lang="ko" aria-hidden="true">인</span>Verified</span>`
   : `<span class="vbadge">${icon("shield")}Code-paired</span>`;
 const inUse = (c) => stricter(c.mode, c.theirMode);
 const now = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
@@ -602,11 +652,12 @@ const head = (title, sub = "", actions = "") => `
   </header>`;
 
 function screenEmpty() {
-  return `<div class="empty"><div class="empty__inner">
+  return `<div class="empty lattice"><div class="empty__inner">
     <svg class="fox" aria-hidden="true"><use href="#fox"/></svg>
     <h2>Pick a chat</h2>
     <p class="muted">Or add someone new. They scan your Glyph, or you read them a short code.</p>
     <button class="btn btn--primary" data-action="go" data-route="add">${icon("plus")}Add contact</button>
+    <p class="kr empty__kr" lang="ko">조용히, 흔적 없이</p>
   </div></div>`;
 }
 
@@ -642,7 +693,7 @@ function screenChat(c) {
     <div class="scroll" id="scroller">
       <div class="timeline ${c.peek ? "peek" : ""}" id="timeline">
         ${c.peek ? `<p class="peekhint">${icon("eyeoff")}Peek mode: hold or hover a message to read it</p>` : ""}
-        <p class="day">Today</p>
+        <p class="day"><span class="eyebrow">Today · <span class="kr" lang="ko">오늘</span></span></p>
         ${c.msgs.map((m) => msgHtml(m, c)).join("")}
       </div>
     </div>
@@ -746,7 +797,7 @@ function screenMode(c) {
   const opts = Object.keys(MODES).map((m) => `
     <label class="modeopt"><input type="radio" name="mode" value="${m}" ${pick === m ? "checked" : ""}>
       <span class="radio" aria-hidden="true"></span>
-      <span class="modeopt__title">${MODES[m].label}${m === "untraceable" ? ' <span class="muted" style="font-weight:400;font-size:13px">Default</span>' : ""}</span>
+      <span class="modeopt__title">${MODES[m].label} <span class="kr" lang="ko">${MODES[m].kr}</span>${m === "untraceable" ? ' <span class="muted" style="font-weight:400;font-size:13px">Default</span>' : ""}</span>
       <p>${MODE_COPY[m][0]}</p>
       <span class="facts">${MODE_COPY[m][1].map(([ok, t]) => `<span class="${ok}">${icon(ok === "yes" ? "check" : "x")}${t}</span>`).join("")}</span>
     </label>`).join("");
@@ -880,60 +931,63 @@ function newGlyph() {
   state.codeDeadline = Date.now() + 600_000;
 }
 
-/* ===== Glyph renderer ===== */
-const FOX_PATH = new Path2D("M3 2.5 9.2 8h5.6L21 2.5 20 12c0 5-3.6 9.5-8 9.5S4 17 4 12Z");
+/* ===== Glyph renderer: a breathing particle orb =====
+   No rings, no finder marks, nothing that reads as a code. The payload rides on the
+   particles themselves: each one is ±3% brighter or dimmer than its neighbours, with a
+   fixed twinkle phase. That sits under the orb's own shimmer, so the eye sees one soft
+   cloud; a camera averaging a few frames against the known geometry can pull the bits out.
+   ponytail: mockup only, the real encoding lives in core/glyph. */
 let raf = 0;
 const live = new Set();
 function glyphModel(seed) {
-  const r = rng(seed), rings = [], parts = [];
-  for (let k = 0; k < 8; k++) {
-    const t = k / 7, n = Math.round(56 + 72 * t), off = r() * Math.PI;
-    rings.push({ t, dots: Array.from({ length: n }, (_, i) => ({ a: off + (i / n) * Math.PI * 2, on: r() > 0.48 })) });
+  const r = rng(seed), n = 900, golden = Math.PI * (3 - Math.sqrt(5)), parts = [];
+  for (let i = 0; i < n; i++) {
+    const y = 1 - (i / (n - 1)) * 2, ring = Math.sqrt(1 - y * y), th = golden * i, j = 1 + (r() - 0.5) * 0.08, tone = r();
+    parts.push({
+      x: Math.cos(th) * ring * j, y: y * j, z: Math.sin(th) * ring * j,
+      s: 0.6 + r() * 0.9, ph: r() * Math.PI * 2,
+      c: tone < 0.55 ? 0 : tone < 0.7 ? 1 : 2, // vermilion, cheong blue, ink
+      bit: r() > 0.5 ? 1.03 : 0.97, // the hidden payload
+    });
   }
-  for (let i = 0; i < 110; i++) parts.push({ t: r(), a: r() * Math.PI * 2, v: (0.08 + r() * 0.22) * (r() > 0.5 ? 1 : -1), w: r() * Math.PI * 2, s: 0.6 + r() * 1.2 });
-  return { rings, parts };
+  return parts;
 }
 function drawGlyph(cv, time) {
   const dpr = devicePixelRatio || 1, css = cv.clientWidth;
   if (!css) return;
   if (cv.width !== Math.round(css * dpr)) { cv.width = cv.height = Math.round(css * dpr); }
-  const ctx = cv.getContext("2d"), S = cv.width, c = S / 2, cs = getComputedStyle(cv);
-  const ink = cs.getPropertyValue("--ink").trim(), fox = cs.getPropertyValue("--fox").trim(), muted = cs.getPropertyValue("--line").trim();
-  const m = cv._m || (cv._m = glyphModel(+cv.dataset.seed));
-  const r0 = S * 0.17, r1 = S * 0.43;
+  const ctx = cv.getContext("2d"), S = cv.width, c = S / 2, R = S * 0.34, cs = getComputedStyle(cv);
+  const dark = (cs.colorScheme || "").includes("dark");
+  const cols = ["--fox", "--private", "--ink"].map((v) => cs.getPropertyValue(v).trim());
+  const parts = cv._m || (cv._m = glyphModel(+cv.dataset.seed));
   ctx.clearRect(0, 0, S, S);
-  // flowing particles (decorative; data dots stay fixed so the code stays readable)
-  ctx.fillStyle = fox;
-  for (const p of m.parts) {
-    const a = p.a + time * p.v * 0.001, rad = r0 + (r1 - r0) * p.t + Math.sin(time * 0.0007 + p.w) * S * 0.02;
-    ctx.globalAlpha = 0.18 + 0.12 * Math.sin(time * 0.001 + p.w);
-    ctx.beginPath(); ctx.arc(c + Math.cos(a) * rad, c + Math.sin(a) * rad, S * 0.0035 * p.s, 0, 7); ctx.fill();
+  // soft core glow
+  const g = ctx.createRadialGradient(c, c, 0, c, c, R * 1.3);
+  g.addColorStop(0, cols[0]); g.addColorStop(1, "transparent");
+  ctx.globalAlpha = dark ? 0.18 : 0.08; ctx.fillStyle = g; ctx.fillRect(0, 0, S, S);
+  ctx.globalCompositeOperation = dark ? "lighter" : "source-over";
+  const ay = time * 0.00022, ax = 0.4 + Math.sin(time * 0.00017) * 0.18;
+  const sy = Math.sin(ay), cy = Math.cos(ay), sx = Math.sin(ax), cx = Math.cos(ax);
+  for (const p of parts) {
+    const k = 1 + 0.045 * Math.sin(time * 0.0011 + p.y * 3.2 + p.x * 1.4); // slow breathing waves across the surface
+    const x = p.x * k, y = p.y * k, z = p.z * k;
+    const x1 = x * cy - z * sy, z1 = x * sy + z * cy;
+    const y1 = y * cx - z1 * sx, z2 = y * sx + z1 * cx;
+    const d = (z2 + 1) / 2, sc = 1 + z2 * 0.22;
+    const tw = 0.85 + 0.15 * Math.sin(time * 0.002 + p.ph);
+    ctx.globalAlpha = Math.min(1, (0.06 + 0.94 * d * d) * tw * p.bit);
+    ctx.fillStyle = cols[p.c];
+    ctx.beginPath(); ctx.arc(c + x1 * R * sc, c + y1 * R * sc, S * 0.0038 * p.s * (0.55 + d * 0.7), 0, 7); ctx.fill();
   }
-  ctx.globalAlpha = 1;
-  // data rings
-  for (const ring of m.rings) {
-    const rad = r0 + (r1 - r0) * ring.t;
-    for (const d of ring.dots) {
-      ctx.fillStyle = d.on ? ink : muted;
-      ctx.beginPath(); ctx.arc(c + Math.cos(d.a) * rad, c + Math.sin(d.a) * rad, d.on ? S * 0.0085 : S * 0.004, 0, 7); ctx.fill();
-    }
-  }
-  // three asymmetric orientation marks
-  ctx.strokeStyle = ink; ctx.lineCap = "round"; ctx.lineWidth = S * 0.018;
-  for (const [deg, len] of [[-90, 22], [28, 12], [196, 12]]) {
-    const a = (deg * Math.PI) / 180, l = (len * Math.PI) / 180;
-    ctx.beginPath(); ctx.arc(c, c, r1 + S * 0.045, a - l / 2, a + l / 2); ctx.stroke();
-  }
-  // emblem
-  ctx.save(); ctx.translate(c - r0 * 0.78, c - r0 * 0.82); ctx.scale((r0 * 1.56) / 24, (r0 * 1.56) / 24);
-  ctx.fillStyle = fox; ctx.fill(FOX_PATH); ctx.restore();
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
 }
 function startGlyphs(root) {
   root.querySelectorAll("canvas[data-glyph]").forEach((cv) => live.add(cv));
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const loop = (t) => {
-    live.forEach((cv) => { if (!cv.isConnected) live.delete(cv); else drawGlyph(cv, cv.dataset.glyph === "static" || reduce ? 0 : t); });
-    if (!reduce && [...live].some((cv) => cv.dataset.glyph === "live" && !cv.classList.contains("is-expired"))) raf = requestAnimationFrame(loop);
+    live.forEach((cv) => { if (!cv.isConnected) live.delete(cv); else drawGlyph(cv, reduce ? 0 : t); });
+    // keep spinning only while a visible, unexpired orb is on screen (hidden onboarding has no width)
+    if (!reduce && [...live].some((cv) => cv.clientWidth && !cv.classList.contains("is-expired"))) raf = requestAnimationFrame(loop);
   };
   cancelAnimationFrame(raf); raf = requestAnimationFrame(loop);
 }

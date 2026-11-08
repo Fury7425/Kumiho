@@ -14,9 +14,10 @@ Early design stage. Nothing here is usable for real messages yet.
 
 | Part | State |
 | --- | --- |
-| [`mockup/`](mockup/index.html) | Clickable UI mockup of every main screen. Open `mockup/index.html` in a browser. |
+| [UI mockup canvas](https://claude.ai/artifact/DLqbFoYkYEhWxkompU82N4) | Minimal interactive mockup: desktop app plus six phone frames in light and dark. |
+| [`mockup/`](mockup/index.html) | Earlier single-file HTML mockup. Open `mockup/index.html` in a browser. |
 | [`core/`](core/) | Rust core: shared types, the stricter-wins mode rule, and the Core API as stubs. |
-| [`app/`](app/) | Compose Multiplatform shell (desktop target only for now). |
+| [`app/`](app/) | Compose Multiplatform UI, every screen from the canvas, desktop target only for now. Runs on an in-memory demo core (`Core.kt`): no crypto, no network, nothing saved. The Windows capture shield is real. |
 
 ## Architecture
 
@@ -53,6 +54,7 @@ Each step ships something that works on its own.
 ```bash
 cargo test            # core (needs Rust 1.80+)
 gradle :app:run       # desktop app (needs JDK 17+ and Gradle 8.x)
+gradle :app:desktopTest
 ```
 
 ## License
