@@ -214,8 +214,20 @@ async fn host_pairing(net: Net, ids: CodeIds, my_card: String) -> Result<Paired,
     let ep = bind(net, 1, rendezvous_key(&ids), PAIR_ALPN).await?;
     let incoming = ep.accept().await.ok_or("endpoint closed")?;
     let conn = incoming.await.map_err(text)?;
+    let result = host_exchange(&conn, &ids, &my_card).await;
+    if result.is_err() {
+        // Hang up out loud, or the other side only finds out at the idle timeout.
+        conn.close(1u8.into(), b"burned");
+    } else {
+        let _ = tokio::time::timeout(Duration::from_secs(2), conn.closed()).await;
+    }
+    ep.close().await;
+    result
+}
+
+async fn host_exchange(conn: &Connection, ids: &CodeIds, my_card: &str) -> Result<Paired, String> {
     let (mut send, mut recv) = conn.accept_bi().await.map_err(text)?;
-    let (state, outbound) = spake(&ids);
+    let (state, outbound) = spake(ids);
     let inbound = read_msg(&mut recv).await?;
     write_msg(&mut send, &outbound).await?;
     let k = state.finish(&inbound).map_err(|_| BURNED)?;
@@ -224,8 +236,6 @@ async fn host_pairing(net: Net, ids: CodeIds, my_card: String) -> Result<Paired,
     let card = unseal(&hkdf(&k, b"joiner card"), &sealed).ok_or(BURNED)?;
     write_msg(&mut send, &seal(&hkdf(&k, b"host card"), my_card.as_bytes())).await?;
     send.finish().map_err(text)?;
-    let _ = tokio::time::timeout(Duration::from_secs(2), conn.closed()).await;
-    ep.close().await;
     let words = confirm_words(&k, my_card.as_bytes(), &card);
     Ok(Paired { card: String::from_utf8(card).map_err(text)?, words })
 }
