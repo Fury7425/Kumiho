@@ -1,11 +1,29 @@
+import gobley.gradle.GobleyHost
+import gobley.gradle.cargo.dsl.*
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     kotlin("multiplatform") version "2.1.21"
     kotlin("plugin.compose") version "2.1.21"
+    kotlin("plugin.atomicfu") version "2.1.21"
     id("org.jetbrains.compose") version "1.8.2"
     id("com.android.application") version "8.9.1"
+    id("dev.gobley.cargo") version "0.3.7"
+    id("dev.gobley.uniffi") version "0.3.7"
+}
+
+cargo {
+    packageDirectory = layout.projectDirectory.dir("../core")
+    builds.jvm {
+        embedRustLibrary = (rustTarget == GobleyHost.current.rustTarget)
+    }
+}
+
+uniffi {
+    generateFromLibrary {
+        namespace = "kumiho_core"
+    }
 }
 
 kotlin {
@@ -24,11 +42,12 @@ kotlin {
         }
         androidMain.dependencies {
             implementation("androidx.activity:activity-compose:1.10.1")
+            implementation("net.java.dev.jna:jna:5.18.1@aar")
         }
         val desktopMain by getting {
             dependencies {
                 implementation(compose.desktop.currentOs)
-                implementation("net.java.dev.jna:jna:5.17.0") // capture shield: user32.SetWindowDisplayAffinity
+                implementation("net.java.dev.jna:jna:5.18.1") // capture shield, and UniFFI's bindings
             }
         }
         val desktopTest by getting {
@@ -48,6 +67,7 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
+        ndk.abiFilters += setOf("arm64-v8a") // ponytail: real phones only; add x86_64 for emulators
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

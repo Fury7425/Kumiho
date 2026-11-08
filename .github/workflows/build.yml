@@ -23,6 +23,14 @@ jobs:
       - uses: gradle/actions/setup-gradle@v5
         with:
           gradle-version: "8.14"
+      - name: Install protoc
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in
+            Linux) sudo apt-get update && sudo apt-get install -y protobuf-compiler ;;
+            macOS) brew install protobuf ;;
+            Windows) choco install -y protoc ;;
+          esac
       - run: gradle :app:desktopTest :app:packageDistributionForCurrentOS
       - uses: actions/upload-artifact@v5
         with:
@@ -41,6 +49,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v5
         with:
           gradle-version: "8.14"
+      - run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
       - run: gradle :app:assembleDebug
       - uses: actions/upload-artifact@v5
         with:

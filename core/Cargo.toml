@@ -5,7 +5,11 @@ edition = "2021"
 license = "AGPL-3.0-or-later"
 description = "Rust core for Kumiho: keys, crypto, networking and storage"
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
+uniffi = "=0.29.4" # must match the Gobley plugin in app/build.gradle.kts
 async-trait = "0.1"
 futures-executor = "0.3"
 hex = "0.4"

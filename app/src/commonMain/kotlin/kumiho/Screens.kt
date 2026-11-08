@@ -385,6 +385,8 @@ fun Settings(s: AppState, compact: Boolean, captureBlocked: Boolean) {
     Page {
         Section("Identity") {
             Card {
+                LRow("Rust core", icon = IC.info, value = uniffi.kumiho_core.coreVersion(), mono = true)
+                Hair()
                 LRow("Fingerprint", icon = IC.key, value = "7f3a 91c2 0be4", mono = true)
                 Hair()
                 LRow("Keys", "Sealed by this device's security chip", IC.lock, "On device")
