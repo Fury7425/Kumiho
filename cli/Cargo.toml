@@ -1,0 +1,17 @@
+[package]
+name = "kumiho-cli"
+version = "0.0.1"
+edition = "2021"
+license = "AGPL-3.0-or-later"
+description = "Two-terminal test client for the Kumiho core"
+
+[dependencies]
+anyhow = "1"
+iroh = "1.4"
+kumiho-core = { path = "../core" }
+rpassword = "7"
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+
+[dev-dependencies]
+tempfile = "3"

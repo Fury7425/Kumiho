@@ -1,5 +1,7 @@
 //! Kumiho core. The apps talk to it only through the API below; keys never cross it.
-//! Everything except the mode rule is a stub until its build-order milestone lands.
+//! `account` holds build-order steps 1-2. The free functions below are still stubs for the app's FFI.
+
+pub mod account;
 
 pub type ContactId = String;
 pub type MessageId = u64;
