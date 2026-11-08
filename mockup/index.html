@@ -1,0 +1,1099 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kumiho Mockup</title>
+<meta name="description" content="Clickable UI mockup for Kumiho, a peer-to-peer, post-quantum messenger with no server to trust.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ---------- Tokens ---------- */
+:root {
+  color-scheme: light;
+  --bg: oklch(0.985 0.003 285);
+  --surface: oklch(1 0 0);
+  --surface-2: oklch(0.958 0.006 285);
+  --surface-3: oklch(0.93 0.008 285);
+  --line: oklch(0.895 0.008 285);
+  --ink: oklch(0.22 0.02 285);
+  --muted: oklch(0.47 0.015 285);
+  --fox: oklch(0.55 0.175 42);
+  --fox-ink: oklch(0.99 0.01 60);
+  --fox-soft: oklch(0.55 0.175 42 / 0.12);
+  --fast: oklch(0.52 0.12 85);
+  --private: oklch(0.48 0.1 180);
+  --untraceable: oklch(0.5 0.17 300);
+  --danger: oklch(0.55 0.2 25);
+  --ok: oklch(0.52 0.13 150);
+  --focus: oklch(0.6 0.17 42);
+  --bubble-me: oklch(0.55 0.175 42);
+  --bubble-me-ink: oklch(0.99 0.01 60);
+  --bubble-them: oklch(0.945 0.007 285);
+
+  --font: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SF Mono", Consolas, monospace;
+  --r-sm: 8px; --r-md: 12px; --r-lg: 18px;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --z-sticky: 10; --z-pane: 20; --z-overlay: 30; --z-toast: 40;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: oklch(0.165 0.014 285);
+    --surface: oklch(0.195 0.016 285);
+    --surface-2: oklch(0.235 0.018 285);
+    --surface-3: oklch(0.28 0.02 285);
+    --line: oklch(0.3 0.018 285);
+    --ink: oklch(0.95 0.006 285);
+    --muted: oklch(0.72 0.014 285);
+    --fox: oklch(0.75 0.155 50);
+    --fox-ink: oklch(0.2 0.04 45);
+    --fox-soft: oklch(0.75 0.155 50 / 0.14);
+    --fast: oklch(0.83 0.13 92);
+    --private: oklch(0.78 0.11 178);
+    --untraceable: oklch(0.76 0.13 300);
+    --danger: oklch(0.7 0.18 25);
+    --ok: oklch(0.76 0.14 150);
+    --bubble-me: oklch(0.75 0.155 50);
+    --bubble-me-ink: oklch(0.2 0.04 45);
+    --bubble-them: oklch(0.255 0.02 285);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: oklch(0.165 0.014 285);
+  --surface: oklch(0.195 0.016 285);
+  --surface-2: oklch(0.235 0.018 285);
+  --surface-3: oklch(0.28 0.02 285);
+  --line: oklch(0.3 0.018 285);
+  --ink: oklch(0.95 0.006 285);
+  --muted: oklch(0.72 0.014 285);
+  --fox: oklch(0.75 0.155 50);
+  --fox-ink: oklch(0.2 0.04 45);
+  --fox-soft: oklch(0.75 0.155 50 / 0.14);
+  --fast: oklch(0.83 0.13 92);
+  --private: oklch(0.78 0.11 178);
+  --untraceable: oklch(0.76 0.13 300);
+  --danger: oklch(0.7 0.18 25);
+  --ok: oklch(0.76 0.14 150);
+  --bubble-me: oklch(0.75 0.155 50);
+  --bubble-me-ink: oklch(0.2 0.04 45);
+  --bubble-them: oklch(0.255 0.02 285);
+}
+
+/* ---------- Base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 400 15px/1.45 var(--font); -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+h1, h2, h3 { margin: 0; font-weight: 600; text-wrap: balance; }
+h1 { font-size: 1.6rem; letter-spacing: -0.02em; }
+h2 { font-size: 1.2rem; letter-spacing: -0.01em; }
+h3 { font-size: 0.95rem; }
+p { margin: 0; text-wrap: pretty; }
+button, input, textarea { font: inherit; color: inherit; }
+svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.mono { font-family: var(--mono); font-feature-settings: "zero"; }
+.muted { color: var(--muted); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 40px; padding: 0 16px; border-radius: var(--r-md);
+  border: 1px solid var(--line); background: var(--surface); font-weight: 500;
+  cursor: pointer; user-select: none;
+  transition: transform 160ms var(--ease-out), background-color 150ms ease, border-color 150ms ease;
+}
+.btn:active:not(:disabled) { transform: scale(0.97); }
+.btn--primary { background: var(--fox); border-color: transparent; color: var(--fox-ink); }
+.btn--ghost { background: transparent; border-color: transparent; }
+.btn--danger { color: var(--danger); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn--block { width: 100%; }
+.icon-btn {
+  display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 10px;
+  border: 0; background: transparent; cursor: pointer; color: var(--ink);
+  transition: transform 160ms var(--ease-out), background-color 150ms ease;
+}
+.icon-btn:active:not(:disabled) { transform: scale(0.94); }
+.icon-btn:disabled { color: var(--muted); opacity: 0.5; cursor: not-allowed; }
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover:not(:disabled) { background: var(--surface-2); }
+  .btn--primary:hover:not(:disabled) { background: color-mix(in oklch, var(--fox) 88%, var(--ink)); }
+  .icon-btn:hover:not(:disabled) { background: var(--surface-2); }
+}
+
+/* ---------- Badges ---------- */
+.mode {
+  --c: var(--untraceable);
+  display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px;
+  border-radius: 999px; font-size: 12px; font-weight: 500; white-space: nowrap;
+  color: var(--c); background: color-mix(in oklch, var(--c) 14%, transparent);
+}
+.mode::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.mode--fast { --c: var(--fast); }
+.mode--private { --c: var(--private); }
+.mode--untraceable { --c: var(--untraceable); }
+.vbadge { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); }
+.vbadge svg.i { width: 14px; height: 14px; }
+.vbadge--ok { color: var(--ok); }
+
+/* ---------- App shell ---------- */
+.app { display: grid; grid-template-columns: 340px 1fr; height: 100dvh; position: relative; }
+.sidebar { display: flex; flex-direction: column; min-height: 0; background: var(--surface); border-right: 1px solid var(--line); }
+.sidebar__head { display: flex; align-items: center; gap: 4px; padding: 14px 10px 10px 18px; }
+.wordmark { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 1.05rem; letter-spacing: -0.01em; margin-right: auto; }
+.wordmark svg { width: 22px; height: 22px; color: var(--fox); }
+.chatlist { list-style: none; margin: 0; padding: 4px 8px; overflow-y: auto; flex: 1; }
+.chatrow {
+  display: grid; grid-template-columns: 44px 1fr auto; gap: 2px 12px; align-items: center;
+  width: 100%; padding: 10px; border-radius: var(--r-md); border: 0; background: transparent;
+  text-align: left; cursor: pointer; transition: background-color 120ms ease;
+}
+.chatrow[aria-current="true"] { background: var(--surface-2); }
+@media (hover: hover) and (pointer: fine) { .chatrow:hover { background: var(--surface-2); } }
+.avatar {
+  grid-row: span 2; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center;
+  font-weight: 600; background: oklch(0.88 0.06 var(--h)); color: oklch(0.3 0.08 var(--h));
+}
+:root[data-theme="dark"] .avatar { background: oklch(0.36 0.07 var(--h)); color: oklch(0.92 0.05 var(--h)); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .avatar { background: oklch(0.36 0.07 var(--h)); color: oklch(0.92 0.05 var(--h)); } }
+.avatar--lg { width: 72px; height: 72px; font-size: 1.6rem; }
+.chatrow__name { font-weight: 600; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.chatrow__time { font-size: 12px; color: var(--muted); }
+.chatrow__preview { color: var(--muted); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chatrow__preview.is-peek { filter: blur(4px); }
+.unread { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--fox); color: var(--fox-ink); font-size: 12px; font-weight: 600; display: grid; place-items: center; }
+.netstrip {
+  display: flex; align-items: center; gap: 10px; margin: 8px; padding: 10px 12px; border-radius: var(--r-md);
+  background: var(--surface-2); border: 0; font-size: 13px; color: var(--muted); cursor: pointer; text-align: left;
+}
+.netstrip strong { color: var(--ink); font-weight: 500; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex: none; }
+.dot--down { background: var(--danger); }
+.dot--idle { background: var(--muted); }
+
+.pane { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--bg); }
+.pane__head {
+  display: flex; align-items: center; gap: 8px; min-height: 64px; padding: 10px 12px 10px 16px;
+  border-bottom: 1px solid var(--line); background: var(--surface); position: sticky; top: 0; z-index: var(--z-sticky);
+}
+.pane__title { display: flex; flex-direction: column; min-width: 0; margin-right: auto; }
+.pane__title button { all: unset; cursor: pointer; display: flex; flex-direction: column; gap: 2px; border-radius: 6px; }
+.pane__title button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.pane__name { font-size: 1.2rem; font-weight: 600; letter-spacing: -0.01em; }
+.pane__sub { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+.back { display: none; }
+.scroll { flex: 1; overflow-y: auto; min-height: 0; }
+.page { max-width: 640px; margin: 0 auto; padding: 24px 20px 48px; display: flex; flex-direction: column; gap: 24px; }
+
+/* ---------- Chat ---------- */
+.banner {
+  display: flex; gap: 12px; align-items: flex-start; margin: 12px 16px 0; padding: 12px 14px;
+  border-radius: var(--r-md); background: color-mix(in oklch, var(--danger) 10%, var(--surface)); border: 1px solid color-mix(in oklch, var(--danger) 30%, transparent);
+}
+.banner svg.i { color: var(--danger); margin-top: 2px; }
+.banner__body { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+.banner__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.banner__actions .btn { min-height: 34px; padding: 0 12px; font-size: 14px; }
+.timeline { display: flex; flex-direction: column; gap: 4px; padding: 20px 16px 12px; max-width: 760px; margin: 0 auto; width: 100%; }
+.day { align-self: center; font-size: 12px; color: var(--muted); margin: 8px 0; }
+.notice {
+  align-self: center; display: inline-flex; align-items: center; gap: 6px; max-width: 90%;
+  font-size: 12.5px; color: var(--muted); text-align: center; margin: 8px 0; padding: 4px 10px; border-radius: 999px; background: var(--surface-2);
+}
+.notice svg.i { width: 14px; height: 14px; }
+.notice--capture { color: var(--danger); background: color-mix(in oklch, var(--danger) 9%, transparent); }
+.notice .linkish { color: var(--fox); font-weight: 500; background: none; border: 0; padding: 0; cursor: pointer; font-size: inherit; }
+.msg { display: flex; flex-direction: column; max-width: min(75%, 520px); }
+.msg--me { align-self: flex-end; align-items: flex-end; }
+.msg--them { align-self: flex-start; }
+.msg + .msg--me, .msg + .msg--them { margin-top: 2px; }
+.bubble {
+  padding: 8px 12px; border-radius: 16px; background: var(--bubble-them); white-space: pre-wrap; overflow-wrap: anywhere;
+  transition: filter 150ms ease;
+}
+.msg--me .bubble { background: var(--bubble-me); color: var(--bubble-me-ink); border-bottom-right-radius: 6px; }
+.msg--them .bubble { border-bottom-left-radius: 6px; }
+.meta { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--muted); padding: 2px 4px; }
+.meta svg.i { width: 14px; height: 14px; }
+.meta .s-read { color: var(--fox); }
+.msg.is-new { animation: msgIn 200ms var(--ease-out); }
+@keyframes msgIn { from { opacity: 0; transform: translateY(6px); } }
+.peek .bubble { filter: blur(7px); user-select: none; }
+.peek .msg:active .bubble, .peek .msg:focus-visible .bubble { filter: none; }
+@media (hover: hover) and (pointer: fine) { .peek .msg:hover .bubble { filter: none; } }
+.peekhint { align-self: center; font-size: 12px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; margin-bottom: 4px; }
+.peekhint svg.i { width: 14px; height: 14px; }
+
+.composer { display: flex; align-items: flex-end; gap: 6px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--surface); }
+.composer textarea {
+  flex: 1; resize: none; min-height: 40px; max-height: 160px; padding: 9px 14px; border-radius: 20px;
+  border: 1px solid var(--line); background: var(--bg); line-height: 1.4; outline: none;
+  transition: border-color 150ms ease;
+}
+.composer textarea:focus { border-color: var(--fox); }
+.composer textarea::placeholder { color: var(--muted); }
+.send { background: var(--fox); color: var(--fox-ink); border-radius: 50%; }
+@media (hover: hover) and (pointer: fine) { .icon-btn.send:hover:not(:disabled) { background: color-mix(in oklch, var(--fox) 88%, var(--ink)); } }
+
+.tip { position: relative; }
+.tip[data-tip]::after {
+  content: attr(data-tip); position: absolute; top: calc(100% + 6px); right: 0; z-index: var(--z-overlay);
+  padding: 6px 10px; border-radius: 8px; background: var(--ink); color: var(--bg); font-size: 12px; white-space: nowrap;
+  opacity: 0; transform: scale(0.97); transform-origin: top right; pointer-events: none;
+  transition: opacity 125ms ease-out, transform 125ms var(--ease-out);
+}
+.tip[data-tip]:hover::after, .tip[data-tip]:focus-visible::after { opacity: 1; transform: none; transition-delay: 300ms; }
+
+/* ---------- Empty pane ---------- */
+.empty { flex: 1; display: grid; place-items: center; padding: 32px; text-align: center; }
+.empty__inner { display: flex; flex-direction: column; align-items: center; gap: 14px; max-width: 340px; }
+.empty__inner svg.fox { width: 48px; height: 48px; color: var(--fox); }
+
+/* ---------- Forms and sections ---------- */
+.section { display: flex; flex-direction: column; gap: 10px; }
+.section > h2 + p { color: var(--muted); }
+.group { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+.row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; min-height: 52px; }
+.row + .row { border-top: 1px solid var(--line); }
+.row__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.row__main small { color: var(--muted); font-size: 13px; }
+button.row { width: 100%; border: 0; background: transparent; text-align: left; cursor: pointer; }
+@media (hover: hover) and (pointer: fine) { button.row:hover { background: var(--surface-2); } }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-weight: 500; font-size: 14px; }
+.input {
+  height: 44px; padding: 0 14px; border-radius: var(--r-md); border: 1px solid var(--line); background: var(--surface);
+  outline: none; transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.input:focus { border-color: var(--fox); box-shadow: 0 0 0 3px var(--fox-soft); }
+.input::placeholder { color: var(--muted); }
+.input[aria-invalid="true"] { border-color: var(--danger); }
+.help { font-size: 13px; color: var(--muted); }
+.error { font-size: 13px; color: var(--danger); display: flex; gap: 6px; align-items: flex-start; }
+.error svg.i { width: 16px; height: 16px; margin-top: 1px; }
+
+.switch { position: relative; width: 44px; height: 26px; flex: none; }
+.switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.switch span { position: absolute; inset: 0; border-radius: 999px; background: var(--surface-3); transition: background-color 150ms ease; pointer-events: none; }
+.switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: white; box-shadow: 0 1px 2px oklch(0 0 0 / 0.25); transition: transform 200ms var(--ease-out); }
+.switch input:checked + span { background: var(--fox); }
+.switch input:checked + span::after { transform: translateX(18px); }
+.switch input:focus-visible + span { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.seg { display: inline-flex; padding: 3px; border-radius: 11px; background: var(--surface-2); gap: 2px; }
+.seg button { border: 0; background: transparent; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; color: var(--muted); transition: background-color 150ms ease, color 150ms ease; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px oklch(0 0 0 / 0.08); }
+
+/* ---------- Add contact ---------- */
+.tabs { display: flex; gap: 2px; padding: 3px; border-radius: 12px; background: var(--surface-2); }
+.tabs button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 0; background: transparent; height: 36px; border-radius: 9px; cursor: pointer; color: var(--muted); font-weight: 500; }
+.tabs button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px oklch(0 0 0 / 0.08); }
+.glyphwrap { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 8px 0; }
+.glyph { width: min(300px, 78vw); aspect-ratio: 1; display: block; }
+.glyph.is-expired { opacity: 0.18; filter: blur(2px); transition: opacity 300ms ease, filter 300ms ease; }
+.countdown { font-family: var(--mono); font-size: 14px; color: var(--muted); }
+.expired { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.viewfinder {
+  position: relative; aspect-ratio: 3 / 4; max-height: 420px; width: 100%; border-radius: var(--r-lg);
+  background: oklch(0.14 0.01 285); display: grid; place-items: center; overflow: hidden; color: oklch(0.9 0.01 285);
+}
+.viewfinder::before {
+  content: ""; position: absolute; width: 62%; aspect-ratio: 1; border-radius: 50%;
+  border: 2px dashed oklch(0.9 0.01 285 / 0.5);
+}
+.viewfinder p { position: absolute; bottom: 18px; font-size: 14px; }
+.code {
+  font-family: var(--mono); font-size: 1.35rem; letter-spacing: 0.01em; text-align: center;
+  padding: 18px 16px; border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line); overflow-wrap: anywhere;
+}
+.code small { display: block; margin-top: 8px; font-size: 12px; color: var(--muted); font-family: var(--font); }
+details summary { cursor: pointer; color: var(--muted); font-size: 14px; }
+details[open] summary { margin-bottom: 8px; }
+.ptext { font-family: var(--mono); font-size: 12px; word-break: break-all; padding: 12px; border-radius: var(--r-md); background: var(--surface-2); }
+
+/* ---------- Emoji confirm ---------- */
+.emoji { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.emoji div { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line); }
+.emoji b { font-size: clamp(1.8rem, 8vw, 2.8rem); font-weight: 400; line-height: 1; }
+.emoji span { font-size: 12px; color: var(--muted); }
+
+/* ---------- Mode picker ---------- */
+.modes { display: flex; flex-direction: column; gap: 10px; }
+.modeopt {
+  position: relative; display: grid; grid-template-columns: 22px 1fr; gap: 4px 12px; padding: 14px 16px;
+  border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--surface); cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+.modeopt input { position: absolute; opacity: 0; }
+.modeopt .radio { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--line); margin-top: 2px; display: grid; place-items: center; transition: border-color 150ms ease; }
+.modeopt .radio::after { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--fox); transform: scale(0.5); opacity: 0; transition: transform 180ms var(--ease-out), opacity 120ms ease; }
+.modeopt:has(input:checked) { border-color: var(--fox); background: color-mix(in oklch, var(--fox) 5%, var(--surface)); }
+.modeopt:has(input:checked) .radio { border-color: var(--fox); }
+.modeopt:has(input:checked) .radio::after { transform: none; opacity: 1; }
+.modeopt:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
+.modeopt__title { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.modeopt p { grid-column: 2; color: var(--muted); font-size: 14px; }
+.facts { grid-column: 2; display: flex; gap: 6px 14px; flex-wrap: wrap; font-size: 13px; margin-top: 4px; }
+.facts span { display: inline-flex; gap: 5px; align-items: center; }
+.facts svg.i { width: 14px; height: 14px; }
+.yes { color: var(--ok); } .no { color: var(--muted); }
+.callout { padding: 12px 14px; border-radius: var(--r-md); background: var(--surface-2); font-size: 14px; display: flex; gap: 10px; }
+.callout svg.i { color: var(--muted); margin-top: 1px; }
+
+/* ---------- Contact ---------- */
+.profile { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.safety { display: grid; grid-template-columns: repeat(4, auto); justify-content: center; gap: 8px 18px; font-family: var(--mono); font-size: 1.05rem; padding: 18px; }
+
+/* ---------- Hold to wipe ---------- */
+.hold {
+  position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 44px; padding: 0 18px; border-radius: var(--r-md); border: 1px solid color-mix(in oklch, var(--danger) 40%, transparent);
+  background: var(--surface); color: var(--danger); font-weight: 500; cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: none;
+  transition: transform 160ms var(--ease-out);
+}
+.hold:active { transform: scale(0.97); }
+.hold__fill {
+  position: absolute; inset: 0; background: var(--danger); color: white; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  clip-path: inset(0 100% 0 0); transition: clip-path 200ms var(--ease-out);
+}
+.hold.is-holding .hold__fill { clip-path: inset(0 0 0 0); transition: clip-path 2s linear; }
+
+/* ---------- Onboarding ---------- */
+.onboard {
+  position: fixed; inset: 0; z-index: var(--z-overlay); background: var(--bg); display: grid; place-items: center; padding: 24px; overflow-y: auto;
+  transition: opacity 220ms ease-out;
+}
+.onboard[hidden] { display: none; }
+.onboard.is-leaving { opacity: 0; }
+.onboard__inner { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 22px; }
+.onboard .glyph { width: 168px; margin: 0 auto; }
+.onboard h1 { text-align: center; }
+.onboard__lead { text-align: center; color: var(--muted); }
+.points { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
+.points li { display: flex; gap: 10px; }
+.points svg.i { color: var(--fox); margin-top: 1px; }
+
+/* ---------- Toast ---------- */
+.toasts { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: var(--z-toast); display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
+.toast {
+  padding: 10px 16px; border-radius: 999px; background: var(--ink); color: var(--bg); font-size: 14px; box-shadow: 0 6px 24px oklch(0 0 0 / 0.18);
+  transition: opacity 250ms ease, transform 250ms var(--ease-out);
+  @starting-style { opacity: 0; transform: translateY(10px); }
+}
+.toast.is-out { opacity: 0; transform: translateY(6px); transition-duration: 160ms; }
+
+/* ---------- Mobile: stack navigation ---------- */
+@media (max-width: 760px) {
+  .app { grid-template-columns: 1fr; }
+  .sidebar { border-right: 0; }
+  .pane {
+    position: absolute; inset: 0; z-index: var(--z-pane); transform: translateX(100%);
+    transition: transform 320ms var(--ease-drawer), visibility 0s linear 320ms; visibility: hidden;
+  }
+  .app[data-view="pane"] .pane { transform: none; visibility: visible; transition: transform 320ms var(--ease-drawer), visibility 0s; }
+  .back { display: inline-grid; margin-left: -8px; }
+  .page { padding: 20px 16px 40px; }
+  .msg { max-width: 85%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; }
+  .pane { transition: visibility 0s, opacity 150ms ease; }
+  .btn:active, .icon-btn:active, .hold:active { transform: none; }
+  .hold.is-holding .hold__fill { transition: clip-path 2s linear; }
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="fox" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" d="M3 2.5 9.2 8h5.6L21 2.5 20 12c0 5-3.6 9.5-8 9.5S4 17 4 12Z"/><path fill="var(--bg)" stroke="none" d="M8.2 12.6l2.3.9-1.9 1.1zM15.8 12.6l-2.3.9 1.9 1.1zM12 17.6l-1.1-1h2.2z"/></symbol>
+    <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></symbol>
+    <symbol id="back" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+    <symbol id="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="phone" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z"/></symbol>
+    <symbol id="shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></symbol>
+    <symbol id="shieldcheck" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="check2" viewBox="0 0 24 24"><path d="M18 6 7 17l-5-5M22 10l-7.5 7.5L13 16"/></symbol>
+    <symbol id="clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1Z"/></symbol>
+    <symbol id="eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="eyeoff" viewBox="0 0 24 24"><path d="M9.9 4.2A9 9 0 0 1 12 4c6.4 0 10 8 10 8a17 17 0 0 1-2.2 3.2M6.6 6.6A17 17 0 0 0 2 12s3.6 8 10 8a9.5 9.5 0 0 0 5.4-1.6M2 2l20 20M9.9 9.9a3 3 0 0 0 4.2 4.2"/></symbol>
+    <symbol id="ring" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5" stroke-dasharray="2 2.2"/><circle cx="12" cy="12" r="1.5"/></symbol>
+    <symbol id="camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3Z"/><circle cx="12" cy="13" r="3"/></symbol>
+    <symbol id="keyboard" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 13h.01M18 13h.01M10 13h4M7 16h10"/></symbol>
+    <symbol id="send" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></symbol>
+    <symbol id="clip" viewBox="0 0 24 24"><path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></symbol>
+    <symbol id="alert" viewBox="0 0 24 24"><path d="m10.3 3.9-8.5 14.7A2 2 0 0 0 3.5 21h17a2 2 0 0 0 1.7-2.4L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></symbol>
+    <symbol id="copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+    <symbol id="refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16M3 12A9 9 0 0 1 18.5 5.8L21 8M21 3v5h-5M3 21v-5h5"/></symbol>
+    <symbol id="monitor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+    <symbol id="mobile" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+    <symbol id="lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+    <symbol id="key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 9.3-9.3M17 6l3 3M14 9l2 2"/></symbol>
+    <symbol id="users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M16 3.1a4 4 0 0 1 0 7.8M22 21a7 7 0 0 0-4-6.3"/></symbol>
+    <symbol id="info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></symbol>
+    <symbol id="trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></symbol>
+    <symbol id="x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  </defs>
+</svg>
+
+<section class="onboard" id="onboard" aria-labelledby="ob-title">
+  <form class="onboard__inner" data-form="create">
+    <canvas class="glyph" data-glyph="static" data-seed="7" aria-hidden="true"></canvas>
+    <div>
+      <h1 id="ob-title">Kumiho</h1>
+      <p class="onboard__lead" style="margin-top:6px">A messenger with no server you have to trust.</p>
+    </div>
+    <ul class="points">
+      <li><svg class="i"><use href="#lock"/></svg><span>Messages stay readable only to you and the person you send them to, even against a future quantum computer.</span></li>
+      <li><svg class="i"><use href="#ring"/></svg><span>No phone number, email or username. You add people face to face by scanning their Glyph.</span></li>
+      <li><svg class="i"><use href="#shield"/></svg><span>You choose, per contact, how much of your metadata to hide.</span></li>
+    </ul>
+    <div class="field">
+      <label for="pass">App passphrase <span class="muted">(optional)</span></label>
+      <input class="input" id="pass" type="password" autocomplete="new-password" placeholder="Leave empty to rely on this device's security chip">
+      <p class="help">Mixed into your storage key. Required on Linux computers without a TPM.</p>
+    </div>
+    <button class="btn btn--primary btn--block" type="submit" style="min-height:48px">Create my identity</button>
+  </form>
+</section>
+
+<div class="app" id="app" data-view="list">
+  <aside class="sidebar" aria-label="Chats">
+    <div class="sidebar__head">
+      <div class="wordmark"><svg aria-hidden="true"><use href="#fox"/></svg>Kumiho</div>
+      <button class="icon-btn tip" data-action="go" data-route="add" aria-label="Add contact" data-tip="Add contact"><svg class="i"><use href="#plus"/></svg></button>
+      <button class="icon-btn tip" data-action="go" data-route="settings" aria-label="Settings" data-tip="Settings"><svg class="i"><use href="#gear"/></svg></button>
+    </div>
+    <ul class="chatlist" id="chatlist"></ul>
+    <button class="netstrip" id="netstrip" data-action="go" data-route="settings"></button>
+  </aside>
+  <main class="pane" id="pane" aria-live="off"></main>
+</div>
+
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+
+<script>
+/* ===== Data ===== */
+const MODES = {
+  fast: { label: "Fast", rank: 0 },
+  private: { label: "Private", rank: 1 },
+  untraceable: { label: "Untraceable", rank: 2 },
+};
+const stricter = (a, b) => (MODES[a].rank >= MODES[b].rank ? a : b);
+
+const contacts = [
+  { id: "mina", name: "Mina", hue: 20, mode: "untraceable", theirMode: "untraceable", verified: true, peek: false, unread: 1,
+    shield: "Mina's Mac can't block screenshots",
+    devices: [["mobile", "Pixel 8", "Blocks capture"], ["monitor", "MacBook Air", "Detects and blurs only"]],
+    msgs: [
+      { k: "notice", text: "Paired in person · Verified", icon: "shieldcheck" },
+      { k: "them", text: "did the glyph thing work on your laptop?", t: "20:41" },
+      { k: "me", text: "yep, scanned it with my phone. took about two seconds", t: "20:43", s: "read" },
+      { k: "them", text: "nice. sending the film photos tonight", t: "20:44" },
+      { k: "notice", text: "Mina took a screenshot", icon: "camera", cls: "notice--capture" },
+      { k: "me", text: "caught that 👀", t: "20:58", s: "delivered" },
+      { k: "them", text: "for the group chat, promise", t: "21:02" },
+    ] },
+  { id: "haneul", name: "Haneul", hue: 230, mode: "untraceable", theirMode: "untraceable", verified: true, peek: false, unread: 0,
+    nymDown: true, shield: null,
+    devices: [["mobile", "iPhone 15", "Blocks capture (fragile)"]],
+    msgs: [
+      { k: "them", text: "boarding now, signal's going to be bad", t: "18:20" },
+      { k: "me", text: "are you still on the ferry?", t: "19:05", s: "queued" },
+      { k: "me", text: "call me when you land", t: "19:06", s: "queued" },
+    ] },
+  { id: "jun", name: "Jun", hue: 150, mode: "private", theirMode: "private", verified: false, peek: false, unread: 0, shield: null,
+    devices: [["monitor", "Windows desktop", "Blocks capture"]],
+    msgs: [
+      { k: "notice", text: "Paired with a code at a distance. Not verified yet.", icon: "info", verify: true },
+      { k: "them", text: "code worked. emoji were fox, moon, peach, kite", t: "Tue" },
+      { k: "me", text: "same here 🦊🌙🍑🪁", t: "Tue", s: "delivered" },
+    ] },
+  { id: "dad", name: "Dad", hue: 80, mode: "fast", theirMode: "fast", verified: true, peek: false, unread: 0, shield: null,
+    devices: [["mobile", "Galaxy S23", "Blocks capture"]],
+    msgs: [
+      { k: "them", text: "Dinner on Sunday? Your mum is making galbi-jjim", t: "Mon" },
+      { k: "me", text: "yes!! I'll bring dessert", t: "Mon", s: "read" },
+    ] },
+  { id: "sora", name: "Sora", hue: 320, mode: "untraceable", theirMode: "untraceable", verified: true, peek: true, unread: 0, shield: null,
+    devices: [["mobile", "Pixel 7a", "Blocks capture"]],
+    msgs: [
+      { k: "them", text: "door code is 4471, third floor on the left", t: "Sun" },
+      { k: "me", text: "got it, see you at 7", t: "Sun", s: "read" },
+    ] },
+];
+const byId = (id) => contacts.find((c) => c.id === id);
+
+const state = { route: { name: "empty" }, tab: "glyph", codeStyle: "words", theme: "system", cover: "normal", previews: false, inPerson: true, newMode: "untraceable", pendingName: "" };
+let mid = 0;
+contacts.forEach((c) => c.msgs.forEach((m) => (m.id = ++mid)));
+
+/* ===== Helpers ===== */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+const icon = (id, cls = "") => `<svg class="i ${cls}" aria-hidden="true"><use href="#${id}"/></svg>`;
+const modeBadge = (m, extra = "") => `<span class="mode mode--${m}">${MODES[m].label}${extra}</span>`;
+const vBadge = (c) => c.verified
+  ? `<span class="vbadge vbadge--ok">${icon("shieldcheck")}Verified</span>`
+  : `<span class="vbadge">${icon("shield")}Code-paired</span>`;
+const inUse = (c) => stricter(c.mode, c.theirMode);
+const now = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+const STATUS = {
+  queued: ["clock", "Queued — waiting for the network"],
+  sent: ["check", "Sent"],
+  stored: ["inbox", "Stored in their mailbox"],
+  delivered: ["check2", "Delivered"],
+  read: ["check2", "Read"],
+};
+const statusHtml = (s) => `<span class="s-${s}" title="${STATUS[s][1]}">${icon(STATUS[s][0])}<span class="sr">${STATUS[s][1]}</span></span>`;
+
+function rng(seed) { // mulberry32
+  let a = seed >>> 0;
+  return () => { a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+function hashStr(s) { let h = 2166136261; for (const ch of s) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return h >>> 0; }
+function safetyNumber(c) { const r = rng(hashStr(c.id)); return Array.from({ length: 12 }, () => String(Math.floor(r() * 1e5)).padStart(5, "0")); }
+
+function toast(text) {
+  const el = document.createElement("div");
+  el.className = "toast"; el.textContent = text;
+  $("#toasts").append(el);
+  setTimeout(() => { el.classList.add("is-out"); setTimeout(() => el.remove(), 200); }, 2200);
+}
+
+/* ===== Sidebar ===== */
+function renderList() {
+  const cur = state.route.id;
+  $("#chatlist").innerHTML = contacts.map((c) => {
+    const last = [...c.msgs].reverse().find((m) => m.k !== "notice");
+    const prev = last ? (last.k === "me" ? "You: " : "") + last.text : "";
+    return `<li><button class="chatrow" data-action="open" data-id="${c.id}" aria-current="${cur === c.id && state.route.name === "chat"}">
+      <span class="avatar" style="--h:${c.hue}" aria-hidden="true">${esc(c.name[0])}</span>
+      <span class="chatrow__name">${esc(c.name)} ${modeBadge(inUse(c))}</span>
+      <span class="chatrow__time">${last ? last.t : ""}</span>
+      <span class="chatrow__preview ${c.peek ? "is-peek" : ""}">${c.nymDown ? "Waiting for Nym · " : ""}${esc(prev)}</span>
+      ${c.unread ? `<span class="unread" aria-label="${c.unread} unread">${c.unread}</span>` : "<span></span>"}
+    </button></li>`;
+  }).join("");
+  const down = contacts.some((c) => c.nymDown);
+  $("#netstrip").innerHTML = `<span class="dot ${down ? "dot--down" : ""}"></span><span>${down ? "<strong>Nym unreachable.</strong> Untraceable messages are queued." : "<strong>All networks up.</strong> Veilid, iroh, Tor, Nym"}</span>`;
+}
+
+/* ===== Pane screens ===== */
+const head = (title, sub = "", actions = "") => `
+  <header class="pane__head">
+    <button class="icon-btn back" data-action="back" aria-label="Back to chats">${icon("back")}</button>
+    <div class="pane__title">${title}${sub ? `<div class="pane__sub">${sub}</div>` : ""}</div>${actions}
+  </header>`;
+
+function screenEmpty() {
+  return `<div class="empty"><div class="empty__inner">
+    <svg class="fox" aria-hidden="true"><use href="#fox"/></svg>
+    <h2>Pick a chat</h2>
+    <p class="muted">Or add someone new. They scan your Glyph, or you read them a short code.</p>
+    <button class="btn btn--primary" data-action="go" data-route="add">${icon("plus")}Add contact</button>
+  </div></div>`;
+}
+
+function msgHtml(m, c) {
+  if (m.k === "notice") {
+    return `<div class="notice ${m.cls || ""}">${m.icon ? icon(m.icon) : ""}<span>${esc(m.text)}</span>${m.verify && !c.verified ? ` <button class="linkish" data-action="contact" data-id="${c.id}">Compare safety numbers</button>` : ""}</div>`;
+  }
+  const meta = m.k === "me" ? `<span class="meta">${m.t} ${statusHtml(m.s)}</span>` : `<span class="meta">${m.t}</span>`;
+  return `<div class="msg msg--${m.k}${m.isNew ? " is-new" : ""}" data-mid="${m.id}" ${c.peek ? 'tabindex="0"' : ""}><div class="bubble">${esc(m.text)}</div>${meta}</div>`;
+}
+
+function screenChat(c) {
+  c.unread = 0;
+  const mode = inUse(c);
+  const callOk = mode === "fast";
+  const queued = c.msgs.filter((m) => m.s === "queued").length;
+  const sub = `${modeBadge(mode)} ${vBadge(c)}${c.shield ? `<span>· ${esc(c.shield)}</span>` : ""}`;
+  const actions = `
+    <button class="icon-btn tip" ${callOk ? "" : "disabled"} aria-label="${callOk ? "Call" : "Calls need Fast mode"}" data-tip="${callOk ? "Call" : "Calls need Fast mode"}" ${callOk ? 'data-action="call"' : ""}>${icon("phone")}</button>
+    <button class="icon-btn tip" data-action="toggle-peek" data-id="${c.id}" aria-pressed="${c.peek}" aria-label="Peek mode" data-tip="${c.peek ? "Peek mode on" : "Peek mode off"}">${icon(c.peek ? "eyeoff" : "eye")}</button>`;
+  const banner = c.nymDown ? `
+    <div class="banner" role="alert">${icon("alert")}
+      <div class="banner__body">
+        <p><strong>Nym is unreachable.</strong> ${queued} message${queued === 1 ? " is" : "s are"} waiting. Keep waiting, or send ${queued === 1 ? "it" : "them"} over Private (Tor) this time? Private hides your IP but not when you chat.</p>
+        <div class="banner__actions">
+          <button class="btn" data-action="keep-waiting" data-id="${c.id}">Keep waiting</button>
+          <button class="btn" data-action="downgrade" data-id="${c.id}">Use Private once</button>
+        </div>
+      </div>
+    </div>` : "";
+  return `${head(`<button data-action="contact" data-id="${c.id}" aria-label="${esc(c.name)}, contact details"><span class="pane__name">${esc(c.name)}</span></button>`, sub, actions)}
+    ${banner}
+    <div class="scroll" id="scroller">
+      <div class="timeline ${c.peek ? "peek" : ""}" id="timeline">
+        ${c.peek ? `<p class="peekhint">${icon("eyeoff")}Peek mode: hold or hover a message to read it</p>` : ""}
+        <p class="day">Today</p>
+        ${c.msgs.map((m) => msgHtml(m, c)).join("")}
+      </div>
+    </div>
+    <form class="composer" data-form="send" data-id="${c.id}">
+      <button class="icon-btn" type="button" aria-label="Attach file" data-action="attach">${icon("clip")}</button>
+      <label class="sr" for="compose">Message ${esc(c.name)}</label>
+      <textarea id="compose" rows="1" placeholder="Message ${esc(c.name)}" autocomplete="off"></textarea>
+      <button class="icon-btn send" type="submit" aria-label="Send">${icon("send")}</button>
+    </form>`;
+}
+
+function screenAdd() {
+  const t = state.tab;
+  const tab = (id, ic, label) => `<button role="tab" aria-selected="${t === id}" data-action="tab" data-tab="${id}">${icon(ic)}${label}</button>`;
+  let body = "";
+  if (t === "glyph") {
+    body = `<div class="glyphwrap">
+      <canvas class="glyph" data-glyph="live" data-seed="${state.glyphSeed}" aria-label="Your one-time Glyph. Ask the other person to scan it."></canvas>
+      <p class="countdown" data-deadline="${state.glyphDeadline}" data-expire="glyph"></p>
+      <p class="muted" style="text-align:center;max-width:42ch">Ask them to open Kumiho and scan this. It works once, for 60 seconds, and carries no phone number or address.</p>
+      <button class="btn" data-action="new-glyph">${icon("refresh")}New Glyph</button>
+    </div>`;
+  } else if (t === "scan") {
+    body = `<div class="viewfinder" role="img" aria-label="Camera preview">
+      <p>Point at their Glyph</p>
+    </div>
+    <p class="help">Frames go straight to the decoder on this device. Nothing is uploaded.</p>
+    <button class="btn btn--primary" data-action="scan">${icon("camera")}Simulate a scan</button>`;
+  } else {
+    const code = state.codeStyle === "words" ? "river-maple · orbit-tiger-seven" : "4821-0937 · 5512-8803-1146";
+    body = `<div class="section">
+      <h2>Give them a code</h2>
+      <div class="code">${code}<small data-deadline="${state.codeDeadline}" data-expire="code"></small></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <div class="seg" role="group" aria-label="Code style">
+          <button aria-pressed="${state.codeStyle === "words"}" data-action="code-style" data-style="words">Words</button>
+          <button aria-pressed="${state.codeStyle === "digits"}" data-action="code-style" data-style="digits">Digits</button>
+        </div>
+        <button class="btn" data-action="copy" data-text="${code}">${icon("copy")}Copy</button>
+      </div>
+      <p class="help">Read it aloud or send it another way. One wrong attempt burns it.</p>
+    </div>
+    <form class="section" data-form="code" novalidate>
+      <h2>Or enter their code</h2>
+      <div class="field">
+        <label for="codein">Code</label>
+        <input class="input mono" id="codein" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="river-maple · orbit-tiger-seven" aria-describedby="codehelp">
+        <p class="help" id="codehelp">Five words or 20 digits. Demo: type the code above.</p>
+        <div id="codeerr"></div>
+      </div>
+      <button class="btn btn--primary" type="submit">Pair</button>
+    </form>
+    <details>
+      <summary>Advanced: pairing text</summary>
+      <p class="ptext">${pairingText()}</p>
+      <p class="help" style="margin-top:8px">Single use, expires in 10 minutes. Only as private as the channel you paste it into.</p>
+    </details>`;
+  }
+  return `${head("<h2>Add contact</h2>")}
+    <div class="scroll"><div class="page">
+      <div class="tabs" role="tablist" aria-label="Pairing method">
+        ${tab("glyph", "ring", "Show Glyph")}${tab("scan", "camera", "Scan")}${tab("code", "keyboard", "Code")}
+      </div>
+      ${body}
+    </div></div>`;
+}
+
+function pairingText() {
+  const r = rng(state.glyphSeed || 1), A = "abcdefghijklmnopqrstuvwxyz234567";
+  return "gly1:" + Array.from({ length: 140 }, () => A[Math.floor(r() * 32)]).join("");
+}
+
+function screenConfirm() {
+  const e = [["🦊", "fox"], ["🌙", "moon"], ["🍑", "peach"], ["🪁", "kite"]];
+  return `${head("<h2>Check the emoji</h2>")}
+    <div class="scroll"><div class="page">
+      <p>Both screens now show four emoji. If they match, nobody is sitting in the middle of this connection.</p>
+      <div class="emoji" role="list">${e.map(([g, n]) => `<div role="listitem"><b aria-hidden="true">${g}</b><span>${n}</span></div>`).join("")}</div>
+      <form class="section" data-form="confirm">
+        <div class="field">
+          <label for="newname">Name for this contact</label>
+          <input class="input" id="newname" required maxlength="40" placeholder="Only you see this" value="${esc(state.pendingName)}">
+        </div>
+        <div class="group"><label class="row"><span class="row__main">We're in the same room<small>Marks the contact Verified. At a distance, compare emoji on a live voice call.</small></span>
+          <span class="switch"><input type="checkbox" data-action="in-person" ${state.inPerson ? "checked" : ""}><span></span></span></label></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn--primary" type="submit">They match</button>
+          <button class="btn btn--danger" type="button" data-action="mismatch">They don't match</button>
+        </div>
+      </form>
+    </div></div>`;
+}
+
+const MODE_COPY = {
+  fast: ["A sealed letter, handed over directly.", [["yes", "Instant"], ["yes", "Calls and big files"], ["no", "They can see your IP"]]],
+  private: ["A sealed letter passed through several couriers (Tor).", [["yes", "Hides your IP"], ["no", "About 1 s delay"], ["no", "Timing visible to strong watchers"]]],
+  untraceable: ["A sealed letter dropped into a shuffled sack of identical letters (Nym).", [["yes", "Hides your IP"], ["yes", "Hides when and how much you chat"], ["no", "Several seconds, no calls"]]],
+};
+function screenMode(c) {
+  const pick = c ? c.mode : state.newMode;
+  const opts = Object.keys(MODES).map((m) => `
+    <label class="modeopt"><input type="radio" name="mode" value="${m}" ${pick === m ? "checked" : ""}>
+      <span class="radio" aria-hidden="true"></span>
+      <span class="modeopt__title">${MODES[m].label}${m === "untraceable" ? ' <span class="muted" style="font-weight:400;font-size:13px">Default</span>' : ""}</span>
+      <p>${MODE_COPY[m][0]}</p>
+      <span class="facts">${MODE_COPY[m][1].map(([ok, t]) => `<span class="${ok}">${icon(ok === "yes" ? "check" : "x")}${t}</span>`).join("")}</span>
+    </label>`).join("");
+  const stricterNote = c && MODES[c.theirMode].rank > MODES[c.mode].rank
+    ? `<div class="callout">${icon("info")}<p>${esc(c.name)} chose ${MODES[c.theirMode].label}. The stricter setting always wins, so this chat uses ${MODES[c.theirMode].label}.</p></div>` : "";
+  return `${head(`<h2>${c ? `Privacy with ${esc(c.name)}` : "How private should this be?"}</h2>`)}
+    <div class="scroll"><div class="page">
+      <p class="muted">Message content is end-to-end encrypted in every mode. Modes decide how much else stays hidden.</p>
+      <form class="section" data-form="mode" ${c ? `data-id="${c.id}"` : ""}>
+        <fieldset class="modes" style="border:0;padding:0;margin:0"><legend class="sr">Privacy mode</legend>${opts}</fieldset>
+        ${stricterNote}
+        <div class="callout">${icon("shield")}<p>Kumiho never downgrades silently. If a network is down, messages wait and you decide.</p></div>
+        <button class="btn btn--primary" type="submit">${c ? "Save" : "Start chatting"}</button>
+      </form>
+    </div></div>`;
+}
+
+function screenContact(c) {
+  const sn = safetyNumber(c);
+  return `${head(`<h2>${esc(c.name)}</h2>`)}
+    <div class="scroll"><div class="page">
+      <div class="profile">
+        <span class="avatar avatar--lg" style="--h:${c.hue}" aria-hidden="true">${esc(c.name[0])}</span>
+        <h1>${esc(c.name)}</h1>
+        <div class="pane__sub" style="justify-content:center">${modeBadge(inUse(c))} ${vBadge(c)}</div>
+      </div>
+      <div class="section">
+        <h2>Safety number</h2>
+        <p class="muted">${c.verified ? "You've verified this contact." : "You paired at a distance. Compare these 60 digits with " + esc(c.name) + " in person or on a voice call, or scan their Glyph next time you meet."}</p>
+        <div class="group"><div class="safety" aria-label="Safety number">${sn.map((g) => `<span>${g}</span>`).join("")}</div></div>
+        ${c.verified ? "" : `<button class="btn btn--primary" data-action="verify" data-id="${c.id}">${icon("shieldcheck")}The numbers match</button>`}
+      </div>
+      <div class="section">
+        <h2>Chat settings</h2>
+        <div class="group">
+          <button class="row" data-action="mode" data-id="${c.id}"><span class="row__main">Privacy mode<small>${MODE_COPY[inUse(c)][0]}</small></span>${modeBadge(inUse(c))}${icon("chev")}</button>
+          <label class="row"><span class="row__main">Peek mode<small>Messages stay blurred until you hold or hover them.</small></span>
+            <span class="switch"><input type="checkbox" data-action="toggle-peek" data-id="${c.id}" ${c.peek ? "checked" : ""}><span></span></span></label>
+        </div>
+      </div>
+      <div class="section">
+        <h2>${esc(c.name)}'s devices</h2>
+        <div class="group">${c.devices.map(([ic, n, lvl]) => `<div class="row">${icon(ic)}<span class="row__main">${esc(n)}<small>${lvl}</small></span></div>`).join("")}</div>
+        <p class="help">Each device reports how well it blocks screenshots. It's a claim from their app, not proof.</p>
+      </div>
+    </div></div>`;
+}
+
+const NETS = () => {
+  const down = contacts.some((c) => c.nymDown);
+  return [
+    ["Veilid", "Finds contacts and holds offline mail", "up", "Connected"],
+    ["iroh", "Fast direct pipe, used in Fast mode", "up", "Direct · 1 chat"],
+    ["Tor (Arti)", "Hides your IP in Private mode", "up", "Connected · 1 chat"],
+    ["Nym", "Hides timing in Untraceable mode", down ? "down" : "up", down ? "Unreachable · retrying" : "Connected · 3 chats"],
+  ];
+};
+function screenSettings() {
+  const seg = (key, vals) => `<div class="seg" role="group">${vals.map(([v, l]) => `<button aria-pressed="${state[key] === v}" data-action="set" data-key="${key}" data-val="${v}">${l}</button>`).join("")}</div>`;
+  return `${head("<h2>Settings</h2>")}
+    <div class="scroll"><div class="page">
+      <div class="section">
+        <h2>Your identity</h2>
+        <div class="group">
+          <div class="row">${icon("key")}<span class="row__main">Fingerprint<small class="mono">7f3a 91c2 0be4 5d18 · a6e0 33f7</small></span></div>
+          <div class="row">${icon("lock")}<span class="row__main">Keys never leave this device<small>Storage key wrapped by the TPM. No phone number, email or username exists.</small></span></div>
+        </div>
+      </div>
+      <div class="section">
+        <h2>Networks</h2>
+        <div class="group">${NETS().map(([n, d, s, l]) => `<div class="row"><span class="dot ${s === "down" ? "dot--down" : ""}"></span><span class="row__main">${n}<small>${d}</small></span><span class="muted" style="font-size:13px">${l}</span></div>`).join("")}</div>
+      </div>
+      <div class="section">
+        <h2>Cover traffic</h2>
+        <p class="muted">Untraceable chats send dummy cells at a steady rate while Kumiho is open, so real messages blend in. Higher rates hide more and use more battery and data.</p>
+        ${seg("cover", [["off", "Off"], ["low", "Low"], ["normal", "Normal"], ["high", "High"]])}
+      </div>
+      <div class="section">
+        <h2>This device</h2>
+        <div class="group">
+          <div class="row">${icon("shield")}<span class="row__main">Screen capture<small>Windows blocks screenshots, recording and screen sharing of this window.</small></span><span class="vbadge vbadge--ok">Block</span></div>
+          <label class="row"><span class="row__main">Notification previews<small>Off: notifications only say “New message”.</small></span>
+            <span class="switch"><input type="checkbox" data-action="previews" ${state.previews ? "checked" : ""}><span></span></span></label>
+          <div class="row"><span class="row__main">Appearance</span>${seg("theme", [["system", "System"], ["light", "Light"], ["dark", "Dark"]])}</div>
+        </div>
+      </div>
+      <div class="section">
+        <h2>Linked devices</h2>
+        <div class="group">
+          <div class="row">${icon("monitor")}<span class="row__main">This computer<small>Windows 11 · always-on node</small></span></div>
+          <div class="row">${icon("mobile")}<span class="row__main">Pixel 9<small>Linked 3 weeks ago</small></span></div>
+          <button class="row" data-action="link-device">${icon("plus")}<span class="row__main">Link a device<small>Shows a link-device Glyph for your other phone or computer.</small></span>${icon("chev")}</button>
+        </div>
+      </div>
+      <div class="section">
+        <h2>Panic wipe</h2>
+        <p class="muted">Deletes your keys, contacts and messages from this device. It can't be undone.</p>
+        <div><button class="hold" data-hold="wipe" aria-label="Hold for two seconds to wipe this device">${icon("trash")}Hold to wipe<span class="hold__fill" aria-hidden="true">${icon("trash")}Hold to wipe</span></button></div>
+      </div>
+    </div></div>`;
+}
+
+/* ===== Router ===== */
+function render() {
+  const r = state.route, pane = $("#pane");
+  const c = r.id ? byId(r.id) : null;
+  stopGlyphs();
+  pane.innerHTML =
+    r.name === "chat" ? screenChat(c) :
+    r.name === "add" ? screenAdd() :
+    r.name === "confirm" ? screenConfirm() :
+    r.name === "mode" ? screenMode(c) :
+    r.name === "contact" ? screenContact(c) :
+    r.name === "settings" ? screenSettings() : screenEmpty();
+  $("#app").dataset.view = r.name === "empty" ? "list" : "pane";
+  renderList();
+  startGlyphs(pane);
+  tick();
+  if (r.name === "chat") { const s = $("#scroller"); s.scrollTop = s.scrollHeight; }
+}
+function go(name, id) {
+  if (name === "add" && state.route.name !== "add") newGlyph();
+  state.route = { name, id };
+  render();
+  const h = $("#pane h2, #pane h1");
+  if (name !== "chat" && h) { h.tabIndex = -1; h.focus({ preventScroll: true }); }
+}
+function newGlyph() {
+  state.glyphSeed = Math.floor(Math.random() * 1e9);
+  state.glyphDeadline = Date.now() + 60_000;
+  state.codeDeadline = Date.now() + 600_000;
+}
+
+/* ===== Glyph renderer ===== */
+const FOX_PATH = new Path2D("M3 2.5 9.2 8h5.6L21 2.5 20 12c0 5-3.6 9.5-8 9.5S4 17 4 12Z");
+let raf = 0;
+const live = new Set();
+function glyphModel(seed) {
+  const r = rng(seed), rings = [], parts = [];
+  for (let k = 0; k < 8; k++) {
+    const t = k / 7, n = Math.round(56 + 72 * t), off = r() * Math.PI;
+    rings.push({ t, dots: Array.from({ length: n }, (_, i) => ({ a: off + (i / n) * Math.PI * 2, on: r() > 0.48 })) });
+  }
+  for (let i = 0; i < 110; i++) parts.push({ t: r(), a: r() * Math.PI * 2, v: (0.08 + r() * 0.22) * (r() > 0.5 ? 1 : -1), w: r() * Math.PI * 2, s: 0.6 + r() * 1.2 });
+  return { rings, parts };
+}
+function drawGlyph(cv, time) {
+  const dpr = devicePixelRatio || 1, css = cv.clientWidth;
+  if (!css) return;
+  if (cv.width !== Math.round(css * dpr)) { cv.width = cv.height = Math.round(css * dpr); }
+  const ctx = cv.getContext("2d"), S = cv.width, c = S / 2, cs = getComputedStyle(cv);
+  const ink = cs.getPropertyValue("--ink").trim(), fox = cs.getPropertyValue("--fox").trim(), muted = cs.getPropertyValue("--line").trim();
+  const m = cv._m || (cv._m = glyphModel(+cv.dataset.seed));
+  const r0 = S * 0.17, r1 = S * 0.43;
+  ctx.clearRect(0, 0, S, S);
+  // flowing particles (decorative; data dots stay fixed so the code stays readable)
+  ctx.fillStyle = fox;
+  for (const p of m.parts) {
+    const a = p.a + time * p.v * 0.001, rad = r0 + (r1 - r0) * p.t + Math.sin(time * 0.0007 + p.w) * S * 0.02;
+    ctx.globalAlpha = 0.18 + 0.12 * Math.sin(time * 0.001 + p.w);
+    ctx.beginPath(); ctx.arc(c + Math.cos(a) * rad, c + Math.sin(a) * rad, S * 0.0035 * p.s, 0, 7); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  // data rings
+  for (const ring of m.rings) {
+    const rad = r0 + (r1 - r0) * ring.t;
+    for (const d of ring.dots) {
+      ctx.fillStyle = d.on ? ink : muted;
+      ctx.beginPath(); ctx.arc(c + Math.cos(d.a) * rad, c + Math.sin(d.a) * rad, d.on ? S * 0.0085 : S * 0.004, 0, 7); ctx.fill();
+    }
+  }
+  // three asymmetric orientation marks
+  ctx.strokeStyle = ink; ctx.lineCap = "round"; ctx.lineWidth = S * 0.018;
+  for (const [deg, len] of [[-90, 22], [28, 12], [196, 12]]) {
+    const a = (deg * Math.PI) / 180, l = (len * Math.PI) / 180;
+    ctx.beginPath(); ctx.arc(c, c, r1 + S * 0.045, a - l / 2, a + l / 2); ctx.stroke();
+  }
+  // emblem
+  ctx.save(); ctx.translate(c - r0 * 0.78, c - r0 * 0.82); ctx.scale((r0 * 1.56) / 24, (r0 * 1.56) / 24);
+  ctx.fillStyle = fox; ctx.fill(FOX_PATH); ctx.restore();
+}
+function startGlyphs(root) {
+  root.querySelectorAll("canvas[data-glyph]").forEach((cv) => live.add(cv));
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const loop = (t) => {
+    live.forEach((cv) => { if (!cv.isConnected) live.delete(cv); else drawGlyph(cv, cv.dataset.glyph === "static" || reduce ? 0 : t); });
+    if (!reduce && [...live].some((cv) => cv.dataset.glyph === "live" && !cv.classList.contains("is-expired"))) raf = requestAnimationFrame(loop);
+  };
+  cancelAnimationFrame(raf); raf = requestAnimationFrame(loop);
+}
+function stopGlyphs() { cancelAnimationFrame(raf); live.forEach((cv) => { if (cv.dataset.glyph === "live") live.delete(cv); }); }
+document.addEventListener("visibilitychange", () => { if (document.hidden) cancelAnimationFrame(raf); else startGlyphs($("#pane")); });
+
+/* ===== Countdowns ===== */
+function fmt(ms) { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }
+function tick() {
+  document.querySelectorAll("[data-deadline]").forEach((el) => {
+    const left = +el.dataset.deadline - Date.now();
+    if (el.dataset.expire === "glyph") {
+      el.textContent = left > 0 ? `Expires in ${fmt(left)}` : "";
+      if (left <= 0 && !el.dataset.done) {
+        el.dataset.done = 1;
+        const cv = $("canvas[data-glyph=live]"); cv && cv.classList.add("is-expired");
+        el.insertAdjacentHTML("afterend", `<div class="expired"><p><strong>This Glyph expired.</strong> Old screenshots of it are useless now.</p></div>`);
+      }
+    } else el.textContent = left > 0 ? `Expires in ${fmt(left)} · single use` : "Expired. Make a new one.";
+  });
+}
+setInterval(tick, 1000);
+
+/* ===== Messaging simulation ===== */
+const TIMING = { fast: [["sent", 120], ["delivered", 500]], private: [["sent", 400], ["stored", 1100], ["delivered", 1900]], untraceable: [["sent", 900], ["stored", 2600], ["delivered", 4600]] };
+function setStatus(c, m, s) {
+  m.s = s;
+  const el = document.querySelector(`[data-mid="${m.id}"] .meta`);
+  if (el && state.route.id === c.id) el.innerHTML = `${m.t} ${statusHtml(s)}`;
+}
+function deliver(c, m, mode) { TIMING[mode].forEach(([s, ms]) => setTimeout(() => { setStatus(c, m, s); renderList(); }, ms)); }
+function send(c, text) {
+  const m = { id: ++mid, k: "me", text, t: now(), s: "queued", isNew: true };
+  c.msgs.push(m);
+  $("#timeline").insertAdjacentHTML("beforeend", msgHtml(m, c));
+  m.isNew = false;
+  const s = $("#scroller"); s.scrollTop = s.scrollHeight;
+  if (c.nymDown) { render(); setTimeout(() => $("#compose")?.focus(), 0); return; }
+  deliver(c, m, inUse(c));
+  renderList();
+}
+
+/* ===== Events ===== */
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-action]");
+  if (!b || b.matches("input")) return;
+  const a = b.dataset.action, c = b.dataset.id ? byId(b.dataset.id) : null;
+  switch (a) {
+    case "go": go(b.dataset.route); break;
+    case "open": go("chat", b.dataset.id); setTimeout(() => $("#compose")?.focus({ preventScroll: true }), 330); break;
+    case "back": go(["mode", "contact"].includes(state.route.name) && state.route.id ? "chat" : "empty", state.route.id); break;
+    case "contact": go("contact", c.id); break;
+    case "mode": go("mode", c.id); break;
+    case "tab": state.tab = b.dataset.tab; render(); $(`[data-tab=${state.tab}]`).focus(); break;
+    case "new-glyph": newGlyph(); render(); break;
+    case "scan": state.pendingName = ""; go("confirm"); break;
+    case "code-style": state.codeStyle = b.dataset.style; render(); break;
+    case "copy": navigator.clipboard?.writeText(b.dataset.text).then(() => toast("Code copied"), () => toast("Copy blocked by the browser")); break;
+    case "mismatch": toast("Pairing cancelled. Nothing was saved."); go("add"); break;
+    case "toggle-peek": c.peek = !c.peek; render(); toast(c.peek ? "Peek mode on" : "Peek mode off"); break;
+    case "verify": c.verified = true; c.msgs.push({ id: ++mid, k: "notice", text: "Safety numbers matched · Verified", icon: "shieldcheck" }); render(); toast(`${c.name} is verified`); break;
+    case "keep-waiting": toast("Messages stay queued until Nym is back"); break;
+    case "downgrade": {
+      const q = c.msgs.filter((m) => m.s === "queued");
+      c.nymDown = false;
+      c.msgs.push({ id: ++mid, k: "notice", text: `Sent ${q.length} message${q.length === 1 ? "" : "s"} over Private while Nym was down`, icon: "info" });
+      render();
+      q.forEach((m) => deliver(c, m, "private"));
+      contacts.forEach((x) => (x.nymDown = false));
+      break;
+    }
+    case "call": toast("Calling over iroh…"); break;
+    case "attach": toast("Files are encrypted before they leave this device"); break;
+    case "link-device": state.tab = "glyph"; go("add"); toast("Scan this with your other device"); break;
+    case "set":
+      state[b.dataset.key] = b.dataset.val;
+      if (b.dataset.key === "theme") { if (b.dataset.val === "system") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = b.dataset.val; }
+      render(); $(`[data-key="${b.dataset.key}"][data-val="${b.dataset.val}"]`)?.focus();
+      break;
+  }
+});
+document.addEventListener("change", (e) => {
+  const t = e.target, a = t.dataset.action;
+  if (a === "toggle-peek") { byId(t.dataset.id).peek = t.checked; renderList(); }
+  if (a === "in-person") state.inPerson = t.checked;
+  if (a === "previews") state.previews = t.checked;
+});
+
+document.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const f = e.target, kind = f.dataset.form;
+  if (kind === "create") {
+    const btn = f.querySelector("button[type=submit]");
+    btn.disabled = true; btn.textContent = "Creating keys…";
+    setTimeout(() => { const ob = $("#onboard"); ob.classList.add("is-leaving"); setTimeout(() => { ob.hidden = true; ob.classList.remove("is-leaving"); btn.disabled = false; btn.textContent = "Create my identity"; }, 230); toast("Identity created on this device"); }, 900);
+  }
+  if (kind === "send") {
+    const ta = $("#compose"), text = ta.value.trim();
+    if (!text) return;
+    ta.value = ""; ta.style.height = "";
+    send(byId(f.dataset.id), text);
+  }
+  if (kind === "code") {
+    const v = $("#codein").value.trim().toLowerCase().replace(/\s+/g, " ");
+    const words = v.replace("·", " ").split(/[\s-]+/).filter(Boolean);
+    const digits = v.replace(/\D/g, "");
+    const err = $("#codeerr"), input = $("#codein");
+    const show = (msg) => { input.setAttribute("aria-invalid", "true"); err.innerHTML = `<p class="error" role="alert">${icon("alert")}<span>${msg}</span></p>`; input.focus(); };
+    if (!(words.length === 5 && /^[a-z\s·-]+$/.test(v)) && digits.length !== 20) return show("Codes look like river-maple · orbit-tiger-seven, or 20 digits.");
+    const ok = words.join("-") === "river-maple-orbit-tiger-seven" || digits === "48210937551288031146";
+    if (!ok) return show("That code didn't match, so it's burned now. Ask them for a new one.");
+    state.pendingName = ""; go("confirm");
+  }
+  if (kind === "confirm") {
+    const name = $("#newname").value.trim();
+    if (!name) return $("#newname").focus();
+    state.pendingName = name; state.newMode = "untraceable"; go("mode");
+  }
+  if (kind === "mode") {
+    const m = f.querySelector("input[name=mode]:checked").value;
+    if (f.dataset.id) { const c = byId(f.dataset.id); c.mode = m; c.msgs.push({ id: ++mid, k: "notice", text: `You switched to ${MODES[m].label}`, icon: "shield" }); go("chat", c.id); return; }
+    const id = state.pendingName.toLowerCase().replace(/\W+/g, "") + mid;
+    contacts.unshift({ id, name: state.pendingName, hue: Math.floor(Math.random() * 360), mode: m, theirMode: m, verified: state.inPerson, peek: false, unread: 0, shield: null,
+      devices: [["mobile", "Phone", "Blocks capture"]],
+      msgs: [{ id: ++mid, k: "notice", text: state.inPerson ? "Paired in person · Verified" : "Paired at a distance. Not verified yet.", icon: state.inPerson ? "shieldcheck" : "info", verify: !state.inPerson }] });
+    go("chat", id); toast(`${state.pendingName} added`);
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.target.id === "compose" && e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); e.target.form.requestSubmit(); }
+  if (e.key === "Escape" && state.route.name !== "empty" && !e.target.closest(".onboard")) document.querySelector("[data-action=back]")?.click();
+});
+document.addEventListener("input", (e) => {
+  if (e.target.id === "compose") { const t = e.target; t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 160) + "px"; }
+  if (e.target.id === "codein") { e.target.removeAttribute("aria-invalid"); $("#codeerr").innerHTML = ""; }
+});
+
+/* Hold to wipe: slow while deciding, snappy release */
+let holdTimer = 0;
+function holdStart(btn) {
+  btn.classList.add("is-holding");
+  holdTimer = setTimeout(() => {
+    btn.classList.remove("is-holding");
+    contacts.splice(0);
+    state.route = { name: "empty" }; render();
+    $("#onboard").hidden = false;
+    toast("This device was wiped");
+  }, 2000);
+}
+function holdEnd(btn) { clearTimeout(holdTimer); btn?.classList.remove("is-holding"); }
+document.addEventListener("pointerdown", (e) => { const b = e.target.closest("[data-hold]"); if (b) { b.setPointerCapture(e.pointerId); holdStart(b); } });
+["pointerup", "pointercancel"].forEach((t) => document.addEventListener(t, (e) => holdEnd(e.target.closest?.("[data-hold]") || $("[data-hold]"))));
+document.addEventListener("keydown", (e) => { const b = e.target.closest?.("[data-hold]"); if (b && (e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); holdStart(b); } });
+document.addEventListener("keyup", (e) => { const b = e.target.closest?.("[data-hold]"); if (b) holdEnd(b); });
+
+/* ===== Boot ===== */
+newGlyph();
+render();
+startGlyphs(document);
+</script>
+</body>
+</html>
