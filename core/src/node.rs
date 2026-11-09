@@ -17,6 +17,7 @@ use rand::Rng;
 use sha2::{Digest, Sha256};
 use spake2::{Ed25519Group, Identity, Password, Spake2};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
+use tokio::sync::Notify;
 use tokio::task::AbortHandle;
 
 use crate::account::{now_ms, Account, ContactRow, Error, Frame, Incoming, Line, MAX_TEXT};
@@ -25,6 +26,7 @@ const CHAT_ALPN: &[u8] = b"kumiho/chat/1";
 const PAIR_ALPN: &[u8] = b"kumiho/pair/1";
 const MAX_FRAME: usize = MAX_TEXT + 8 * 1024;
 const WRITE_TIMEOUT: Duration = Duration::from_secs(5);
+const CONNECT_TIMEOUT: Duration = Duration::from_secs(20); // iroh's connect has no timeout of its own
 const CODE_LIFETIME: Duration = Duration::from_secs(600);
 
 #[derive(Debug, thiserror::Error, uniffi::Error)]
@@ -309,7 +311,17 @@ struct Worker {
     generation: u64,
     pairing: Option<AbortHandle>,
     paired_card: Option<String>,
+    wake: Arc<Notify>,
     stop: bool,
+}
+
+/// What to try when dialing a contact, in order. The address saved at pairing goes stale when their
+/// IP changes, and iroh skips address lookup if it has a relay URL, so the bare id has to come first.
+pub fn dial_targets(net: Net, id: EndpointId, saved: &EndpointAddr) -> Vec<EndpointAddr> {
+    match net {
+        Net::Online => vec![EndpointAddr::new(id), saved.clone()],
+        Net::Local { .. } => vec![saved.clone()],
+    }
 }
 
 fn message_info(contact: &str, l: Line) -> MessageInfo {
@@ -343,11 +355,12 @@ impl Worker {
         let me = self.ep.id();
         for (id, (name, addr)) in &self.peers {
             if me < *id && !self.links.contains_key(name) && self.dialing.insert(name.clone()) {
-                let (ep, addr, id, name, tx) = (self.ep.clone(), addr.clone(), *id, name.clone(), self.tx.clone());
+                let targets = dial_targets(self.net, *id, addr);
+                let (ep, id, name, tx, wake) = (self.ep.clone(), *id, name.clone(), self.tx.clone(), self.wake.clone());
                 tokio::spawn(async move {
                     let mut wait = 1u64;
-                    loop {
-                        if let Ok(conn) = ep.connect(addr.clone(), CHAT_ALPN).await {
+                    for target in targets.iter().cycle() {
+                        if let Ok(Ok(conn)) = tokio::time::timeout(CONNECT_TIMEOUT, ep.connect(target.clone(), CHAT_ALPN)).await {
                             if let Ok((mut send, recv)) = conn.open_bi().await {
                                 // accept_bi only returns once the opener has sent something: an empty frame.
                                 if send.write_all(&0u32.to_be_bytes()).await.is_ok() {
@@ -356,8 +369,11 @@ impl Worker {
                                 }
                             }
                         }
-                        tokio::time::sleep(Duration::from_secs(wait)).await;
-                        wait = (wait * 2).min(30);
+                        // A network change makes the next attempt worth trying right away.
+                        tokio::select! {
+                            _ = tokio::time::sleep(Duration::from_secs(wait)) => wait = (wait * 2).min(30),
+                            _ = wake.notified() => wait = 1,
+                        }
                     }
                     let _ = tx.send(Msg::DialStopped(name));
                 });
@@ -485,7 +501,7 @@ async fn worker(path: PathBuf, passphrase: String, events: Arc<dyn Events>, net:
     };
     let mut w = Worker {
         acct, ep: ep.clone(), net, tx: tx.clone(), events, peers: HashMap::new(), links: HashMap::new(),
-        dialing: HashSet::new(), generation: 0, pairing: None, paired_card: None, stop: false,
+        dialing: HashSet::new(), generation: 0, pairing: None, paired_card: None, wake: Arc::new(Notify::new()), stop: false,
     };
     if let Err(e) = w.remember_peers() {
         let _ = ready.send(Err(e));
@@ -617,6 +633,18 @@ impl Node {
 
     pub fn safety_number(&self, contact: String) -> Result<Vec<String>, CoreError> {
         self.call(move |w| Ok(w.acct.safety_number(&contact)?))
+    }
+
+    /// Android can't report network changes to native code, so the app calls this from Kotlin.
+    pub fn network_changed(&self) -> Result<(), CoreError> {
+        self.call(|w| {
+            let (ep, wake) = (w.ep.clone(), w.wake.clone());
+            tokio::spawn(async move {
+                ep.network_change().await;
+                wake.notify_waiters();
+            });
+            Ok(())
+        })
     }
 
     pub fn fingerprint(&self) -> Result<String, CoreError> {

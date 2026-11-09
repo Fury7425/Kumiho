@@ -8,6 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.concurrent.Volatile
 import uniffi.kumiho_core.ContactInfo
 import uniffi.kumiho_core.Events
 import uniffi.kumiho_core.MessageInfo
@@ -16,6 +17,12 @@ import uniffi.kumiho_core.PairingCode
 
 /** HH:MM today, otherwise the date. */
 expect fun formatTime(atMs: Long): String
+
+/** Android tells native code nothing about network changes, so MainActivity reports them here. */
+object NetworkEvents {
+    @Volatile
+    var onChange: (() -> Unit)? = null
+}
 
 /** Where a platform keeps the database and the key that seals it. */
 interface Vault {
@@ -131,6 +138,7 @@ class Core(private val scope: CoroutineScope, private val vault: Vault, private 
             n to n.contacts().map { it to n.history(it.name) }
         }
         node = n
+        NetworkEvents.onChange = { fireAndForget { it.networkChanged() } }
         fingerprint = call { it.fingerprint() }
         contacts.clear()
         contacts.addAll(loaded.map { (c, h) -> model(c, h) })
@@ -192,6 +200,7 @@ class Core(private val scope: CoroutineScope, private val vault: Vault, private 
     }
 
     suspend fun wipe() {
+        NetworkEvents.onChange = null
         call { it.wipe() }
         node = null
         vault.forget()

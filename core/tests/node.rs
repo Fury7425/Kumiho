@@ -4,7 +4,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use kumiho_core::account::Account;
-use kumiho_core::node::{format_digits, format_words, parse_code, CoreError, Events, MessageInfo, Net, Node};
+use kumiho_core::node::{dial_targets, format_digits, format_words, parse_code, CoreError, Events, MessageInfo, Net, Node};
 use tempfile::TempDir;
 
 #[derive(Debug, PartialEq)]
@@ -76,11 +76,18 @@ fn pair_with_a_code_then_chat_over_iroh() {
     wait(&ra, |e| *e == Ev::Message("across the wire".into()));
     wait(&rb, |e| *e == Ev::Status(sent.seq, "delivered".into()));
 
+    // A network change must not disturb a working link.
+    bob.network_changed().unwrap();
+    alice.network_changed().unwrap();
+    let again = bob.send_text("alice".into(), "after the change".into()).unwrap();
+    wait(&ra, |e| *e == Ev::Message("after the change".into()));
+    wait(&rb, |e| *e == Ev::Status(again.seq, "delivered".into()));
+
     let stored = alice.history("bob".into()).unwrap();
     assert_eq!(stored[0].text, "across the wire");
     let contacts = alice.contacts().unwrap();
     assert!(contacts[0].verified);
-    assert_eq!(contacts[0].unread, 1);
+    assert_eq!(contacts[0].unread, 2);
     alice.mark_read("bob".into()).unwrap();
     assert_eq!(alice.contacts().unwrap()[0].unread, 0);
 }
@@ -110,6 +117,16 @@ fn codes_parse_from_words_or_digits_and_reject_junk() {
     assert_eq!(parse_code("river-maple"), None);
     assert_eq!(parse_code("9999-0000 · 0000-0000-0000"), None);
     assert_eq!(parse_code("notaword-ability · zoo-zoo-zoo"), None);
+}
+
+#[test]
+fn online_dialing_tries_a_fresh_lookup_before_the_saved_address() {
+    let id = iroh::SecretKey::generate().public();
+    let saved = iroh::EndpointAddr::new(id).with_ip_addr("203.0.113.7:4433".parse().unwrap());
+    let targets = dial_targets(Net::Online, id, &saved);
+    assert!(targets[0].is_empty(), "the first try must force address lookup");
+    assert_eq!(targets[1], saved);
+    assert_eq!(dial_targets(Net::Local { port: 1, peer_pairing_port: 2 }, id, &saved), vec![saved]);
 }
 
 #[test]

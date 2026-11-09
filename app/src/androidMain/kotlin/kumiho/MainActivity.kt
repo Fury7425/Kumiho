@@ -1,5 +1,8 @@
 package kumiho
 
+import android.net.ConnectivityManager
+import android.net.LinkProperties
+import android.net.Network
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -88,8 +91,20 @@ private class AndroidVault(dir: File) : Vault {
 }
 
 class MainActivity : ComponentActivity() {
+    private val networkWatch = object : ConnectivityManager.NetworkCallback() {
+        override fun onAvailable(network: Network) { NetworkEvents.onChange?.invoke() }
+        override fun onLost(network: Network) { NetworkEvents.onChange?.invoke() }
+        override fun onLinkPropertiesChanged(network: Network, properties: LinkProperties) { NetworkEvents.onChange?.invoke() }
+    }
+
+    override fun onDestroy() {
+        getSystemService(ConnectivityManager::class.java).unregisterNetworkCallback(networkWatch)
+        super.onDestroy()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        getSystemService(ConnectivityManager::class.java).registerDefaultNetworkCallback(networkWatch)
         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
         enableEdgeToEdge()
         val reduceMotion = Settings.Global.getFloat(contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
